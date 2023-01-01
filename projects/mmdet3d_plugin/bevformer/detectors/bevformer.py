@@ -68,7 +68,7 @@ class BEVFormer(MVXTwoStageDetector):
         """Extract features of images."""
         B = img.size(0)
         if img is not None:
-            
+
             # input_shape = img.shape[-2:]
             # # update real input shape of each single img
             # for img_meta in img_metas:
@@ -104,7 +104,7 @@ class BEVFormer(MVXTwoStageDetector):
         """Extract features from images and points."""
 
         img_feats = self.extract_img_feat(img, img_metas, len_queue=len_queue)
-        
+
         return img_feats
 
 
@@ -154,7 +154,7 @@ class BEVFormer(MVXTwoStageDetector):
             return self.forward_train(**kwargs)
         else:
             return self.forward_test(**kwargs)
-    
+
     def obtain_history_bev(self, imgs_queue, img_metas_list):
         """Obtain history BEV features iteratively. To save GPU memory, gradients are not calculated.
         """
@@ -164,6 +164,7 @@ class BEVFormer(MVXTwoStageDetector):
             prev_bev = None
             bs, len_queue, num_cams, C, H, W = imgs_queue.shape
             imgs_queue = imgs_queue.reshape(bs*len_queue, num_cams, C, H, W)
+            # [1, 2, 6, 256, 15, 25]
             img_feats_list = self.extract_feat(img=imgs_queue, len_queue=len_queue)
             for i in range(len_queue):
                 img_metas = [each[i] for each in img_metas_list]
@@ -213,17 +214,19 @@ class BEVFormer(MVXTwoStageDetector):
         Returns:
             dict: Losses of different branches.
         """
-        
         len_queue = img.size(1)
-        prev_img = img[:, :-1, ...]
+        # [1, 2, 6, 3, 480, 800]
+        # prev_img = img[:, :-1, ...]
+        # [1, 6, 3, 480, 800]
         img = img[:, -1, ...]
 
-        prev_img_metas = copy.deepcopy(img_metas)
-        prev_bev = self.obtain_history_bev(prev_img, prev_img_metas)
+        # prev_img_metas = copy.deepcopy(img_metas)
+        # prev_bev = self.obtain_history_bev(prev_img, prev_img_metas)
 
         img_metas = [each[len_queue-1] for each in img_metas]
-        if not img_metas[0]['prev_bev_exists']:
-            prev_bev = None
+        # if not img_metas[0]['prev_bev_exists']:
+        #     prev_bev = None
+        prev_bev = None
         img_feats = self.extract_feat(img=img, img_metas=img_metas)
         losses = dict()
         losses_pts = self.forward_pts_train(img_feats, gt_bboxes_3d,
@@ -240,32 +243,32 @@ class BEVFormer(MVXTwoStageDetector):
                     name, type(var)))
         img = [img] if img is None else img
 
-        if img_metas[0][0]['scene_token'] != self.prev_frame_info['scene_token']:
-            # the first sample of each scene is truncated
-            self.prev_frame_info['prev_bev'] = None
-        # update idx
-        self.prev_frame_info['scene_token'] = img_metas[0][0]['scene_token']
+        # if img_metas[0][0]['scene_token'] != self.prev_frame_info['scene_token']:
+        #     # the first sample of each scene is truncated
+        #     self.prev_frame_info['prev_bev'] = None
+        # # update idx
+        # self.prev_frame_info['scene_token'] = img_metas[0][0]['scene_token']
 
         # do not use temporal information
-        if not self.video_test_mode:
-            self.prev_frame_info['prev_bev'] = None
+        # if not self.video_test_mode:
+        #     self.prev_frame_info['prev_bev'] = None
 
         # Get the delta of ego position and angle between two timestamps.
-        tmp_pos = copy.deepcopy(img_metas[0][0]['can_bus'][:3])
-        tmp_angle = copy.deepcopy(img_metas[0][0]['can_bus'][-1])
-        if self.prev_frame_info['prev_bev'] is not None:
-            img_metas[0][0]['can_bus'][:3] -= self.prev_frame_info['prev_pos']
-            img_metas[0][0]['can_bus'][-1] -= self.prev_frame_info['prev_angle']
-        else:
-            img_metas[0][0]['can_bus'][-1] = 0
-            img_metas[0][0]['can_bus'][:3] = 0
+        # tmp_pos = copy.deepcopy(img_metas[0][0]['can_bus'][:3])
+        # tmp_angle = copy.deepcopy(img_metas[0][0]['can_bus'][-1])
+        # if self.prev_frame_info['prev_bev'] is not None:
+        #     img_metas[0][0]['can_bus'][:3] -= self.prev_frame_info['prev_pos']
+        #     img_metas[0][0]['can_bus'][-1] -= self.prev_frame_info['prev_angle']
+        # else:
+        #     img_metas[0][0]['can_bus'][-1] = 0
+        #     img_metas[0][0]['can_bus'][:3] = 0
 
         new_prev_bev, bbox_results = self.simple_test(
-            img_metas[0], img[0], prev_bev=self.prev_frame_info['prev_bev'], **kwargs)
+            img_metas[0], img[0], prev_bev=None, **kwargs)
         # During inference, we save the BEV features and ego motion of each timestamp.
-        self.prev_frame_info['prev_pos'] = tmp_pos
-        self.prev_frame_info['prev_angle'] = tmp_angle
-        self.prev_frame_info['prev_bev'] = new_prev_bev
+        # self.prev_frame_info['prev_pos'] = tmp_pos
+        # self.prev_frame_info['prev_angle'] = tmp_angle
+        # self.prev_frame_info['prev_bev'] = new_prev_bev
         return bbox_results
 
     def simple_test_pts(self, x, img_metas, prev_bev=None, rescale=False):

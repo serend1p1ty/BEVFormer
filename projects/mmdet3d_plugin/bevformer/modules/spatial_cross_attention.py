@@ -71,7 +71,7 @@ class SpatialCrossAttention(BaseModule):
     def init_weight(self):
         """Default initialization for Parameters of Module."""
         xavier_init(self.output_proj, distribution='uniform', bias=0.)
-    
+
     @force_fp32(apply_to=('query', 'key', 'value', 'query_pos', 'reference_points_cam'))
     def forward(self,
                 query,
@@ -125,6 +125,8 @@ class SpatialCrossAttention(BaseModule):
         if value is None:
             value = key
 
+        num_cams, l, bs, embed_dims = key.shape
+
         if residual is None:
             inp_residual = query
             slots = torch.zeros_like(query)
@@ -142,26 +144,24 @@ class SpatialCrossAttention(BaseModule):
 
         # each camera only interacts with its corresponding BEV queries. This step can  greatly save GPU memory.
         queries_rebatch = query.new_zeros(
-            [bs, self.num_cams, max_len, self.embed_dims])
+            [bs, num_cams, max_len, self.embed_dims])
         reference_points_rebatch = reference_points_cam.new_zeros(
-            [bs, self.num_cams, max_len, D, 2])
-        
+            [bs, num_cams, max_len, D, 2])
+
         for j in range(bs):
-            for i, reference_points_per_img in enumerate(reference_points_cam):   
+            for i, reference_points_per_img in enumerate(reference_points_cam):
                 index_query_per_img = indexes[i]
                 queries_rebatch[j, i, :len(index_query_per_img)] = query[j, index_query_per_img]
                 reference_points_rebatch[j, i, :len(index_query_per_img)] = reference_points_per_img[j, index_query_per_img]
 
-        num_cams, l, bs, embed_dims = key.shape
-
         key = key.permute(2, 0, 1, 3).reshape(
-            bs * self.num_cams, l, self.embed_dims)
+            bs * num_cams, l, self.embed_dims)
         value = value.permute(2, 0, 1, 3).reshape(
-            bs * self.num_cams, l, self.embed_dims)
+            bs * num_cams, l, self.embed_dims)
 
-        queries = self.deformable_attention(query=queries_rebatch.view(bs*self.num_cams, max_len, self.embed_dims), key=key, value=value,
-                                            reference_points=reference_points_rebatch.view(bs*self.num_cams, max_len, D, 2), spatial_shapes=spatial_shapes,
-                                            level_start_index=level_start_index).view(bs, self.num_cams, max_len, self.embed_dims)
+        queries = self.deformable_attention(query=queries_rebatch.view(bs*num_cams, max_len, self.embed_dims), key=key, value=value,
+                                            reference_points=reference_points_rebatch.view(bs*num_cams, max_len, D, 2), spatial_shapes=spatial_shapes,
+                                            level_start_index=level_start_index).view(bs, num_cams, max_len, self.embed_dims)
         for j in range(bs):
             for i, index_query_per_img in enumerate(indexes):
                 slots[j, index_query_per_img] += queries[j, i, :len(index_query_per_img)]

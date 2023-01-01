@@ -32,7 +32,7 @@ class PadMultiViewImage(object):
         elif self.size_divisor is not None:
             padded_img = [mmcv.impad_to_multiple(
                 img, self.size_divisor, pad_val=self.pad_val) for img in results['img']]
-        
+
         results['ori_shape'] = [img.shape for img in results['img']]
         results['img'] = padded_img
         results['img_shape'] = [img.shape for img in padded_img]
@@ -250,7 +250,7 @@ class CustomCollect3D(object):
                             'img_norm_cfg', 'pcd_trans', 'sample_idx', 'prev_idx', 'next_idx',
                             'pcd_scale_factor', 'pcd_rotation', 'pts_filename',
                             'transformation_3d_flow', 'scene_token',
-                            'can_bus',
+                            'can_bus', "img_filename", "ann_info", "nid", "orig_lidar2img"
                             )):
         self.keys = keys
         self.meta_keys = meta_keys
@@ -265,10 +265,10 @@ class CustomCollect3D(object):
                 - keys in ``self.keys``
                 - ``img_metas``
         """
-       
+
         data = {}
         img_metas = {}
-      
+
         for key in self.meta_keys:
             if key in results:
                 img_metas[key] = results[key]
@@ -313,6 +313,7 @@ class RandomScaleImageMultiViewImage(object):
         scale_factor[1, 1] *= rand_scale
         results['img'] = [mmcv.imresize(img, (x_size[idx], y_size[idx]), return_scale=False) for idx, img in
                           enumerate(results['img'])]
+        results["orig_lidar2img"] = [l2i.copy() for l2i in results["lidar2img"]]
         lidar2img = [scale_factor @ l2i for l2i in results['lidar2img']]
         results['lidar2img'] = lidar2img
         results['img_shape'] = [img.shape for img in results['img']]

@@ -76,6 +76,9 @@ class BEVFormerHead(DETRHead):
         self.num_cls_fcs = num_cls_fcs - 1
         super(BEVFormerHead, self).__init__(
             *args, transformer=transformer, **kwargs)
+        # Only for temporal attention. Fix the weight to avoid find_unused_parameters error.
+        for p in self.positional_encoding.parameters():
+            p.requires_grad = False
         self.code_weights = nn.Parameter(torch.tensor(
             self.code_weights, requires_grad=False), requires_grad=False)
 
@@ -135,7 +138,7 @@ class BEVFormerHead(DETRHead):
                 network, each is a 5D-tensor with shape
                 (B, N, C, H, W).
             prev_bev: previous bev featues
-            only_bev: only compute BEV features with encoder. 
+            only_bev: only compute BEV features with encoder.
         Returns:
             all_cls_scores (Tensor): Outputs from the classification head, \
                 shape [nb_dec, bs, num_query, cls_out_channels]. Note \
@@ -145,13 +148,18 @@ class BEVFormerHead(DETRHead):
                 Shape [nb_dec, bs, num_query, 9].
         """
 
+        # [[1, 6, 256, 15, 25]]
         bs, num_cam, _, _, _ = mlvl_feats[0].shape
         dtype = mlvl_feats[0].dtype
+        # [900, 512]
         object_query_embeds = self.query_embedding.weight.to(dtype)
+        # [2500, 256]
         bev_queries = self.bev_embedding.weight.to(dtype)
 
+        # [1, 50, 50]
         bev_mask = torch.zeros((bs, self.bev_h, self.bev_w),
                                device=bev_queries.device).to(dtype)
+        # [1, 256, 50, 50]
         bev_pos = self.positional_encoding(bev_mask).to(dtype)
 
         if only_bev:  # only use encoder to obtain BEV features, TODO: refine the workaround
