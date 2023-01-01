@@ -3,19 +3,13 @@ from mmdet.apis import train_detector
 from mmseg.apis import train_segmentor
 
 
-def train_model(model,
-                dataset,
-                cfg,
-                distributed=False,
-                validate=False,
-                timestamp=None,
-                meta=None):
+def train_model(model, dataset, cfg, distributed=False, validate=False, timestamp=None, meta=None):
     """A function wrapper for launching model training according to cfg.
 
     Because we need different eval_hook in runner. Should be deprecated in the
     future.
     """
-    if cfg.model.type in ['EncoderDecoder3D']:
+    if cfg.model.type in ["EncoderDecoder3D"]:
         train_segmentor(
             model,
             dataset,
@@ -23,7 +17,8 @@ def train_model(model,
             distributed=distributed,
             validate=validate,
             timestamp=timestamp,
-            meta=meta)
+            meta=meta,
+        )
     else:
         train_detector(
             model,
@@ -32,4 +27,5 @@ def train_model(model,
             distributed=distributed,
             validate=validate,
             timestamp=timestamp,
-            meta=meta)
+            meta=meta,
+        )

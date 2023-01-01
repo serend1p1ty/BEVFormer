@@ -24,9 +24,10 @@ class OutdoorImVoxelNeck(nn.Module):
                 kernel_size=3,
                 stride=(1, 1, 2),
                 padding=1,
-                conv_cfg=dict(type='Conv3d'),
-                norm_cfg=dict(type='BN3d'),
-                act_cfg=dict(type='ReLU', inplace=True)),
+                conv_cfg=dict(type="Conv3d"),
+                norm_cfg=dict(type="BN3d"),
+                act_cfg=dict(type="ReLU", inplace=True),
+            ),
             ResModule(in_channels * 2),
             ConvModule(
                 in_channels=in_channels * 2,
@@ -34,18 +35,21 @@ class OutdoorImVoxelNeck(nn.Module):
                 kernel_size=3,
                 stride=(1, 1, 2),
                 padding=1,
-                conv_cfg=dict(type='Conv3d'),
-                norm_cfg=dict(type='BN3d'),
-                act_cfg=dict(type='ReLU', inplace=True)),
+                conv_cfg=dict(type="Conv3d"),
+                norm_cfg=dict(type="BN3d"),
+                act_cfg=dict(type="ReLU", inplace=True),
+            ),
             ResModule(in_channels * 4),
             ConvModule(
                 in_channels=in_channels * 4,
                 out_channels=out_channels,
                 kernel_size=3,
                 padding=(1, 1, 0),
-                conv_cfg=dict(type='Conv3d'),
-                norm_cfg=dict(type='BN3d'),
-                act_cfg=dict(type='ReLU', inplace=True)))
+                conv_cfg=dict(type="Conv3d"),
+                norm_cfg=dict(type="BN3d"),
+                act_cfg=dict(type="ReLU", inplace=True),
+            ),
+        )
 
     def forward(self, x):
         """Forward function.
@@ -80,17 +84,19 @@ class ResModule(nn.Module):
             out_channels=n_channels,
             kernel_size=3,
             padding=1,
-            conv_cfg=dict(type='Conv3d'),
-            norm_cfg=dict(type='BN3d'),
-            act_cfg=dict(type='ReLU', inplace=True))
+            conv_cfg=dict(type="Conv3d"),
+            norm_cfg=dict(type="BN3d"),
+            act_cfg=dict(type="ReLU", inplace=True),
+        )
         self.conv1 = ConvModule(
             in_channels=n_channels,
             out_channels=n_channels,
             kernel_size=3,
             padding=1,
-            conv_cfg=dict(type='Conv3d'),
-            norm_cfg=dict(type='BN3d'),
-            act_cfg=None)
+            conv_cfg=dict(type="Conv3d"),
+            norm_cfg=dict(type="BN3d"),
+            act_cfg=None,
+        )
         self.activation = nn.ReLU(inplace=True)
 
     def forward(self, x):

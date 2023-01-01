@@ -7,6 +7,10 @@ from .groupfree3d_bbox_coder import GroupFree3DBBoxCoder
 from .partial_bin_based_bbox_coder import PartialBinBasedBBoxCoder
 
 __all__ = [
-    'build_bbox_coder', 'DeltaXYZWLHRBBoxCoder', 'PartialBinBasedBBoxCoder',
-    'CenterPointBBoxCoder', 'AnchorFreeBBoxCoder', 'GroupFree3DBBoxCoder'
+    "build_bbox_coder",
+    "DeltaXYZWLHRBBoxCoder",
+    "PartialBinBasedBBoxCoder",
+    "CenterPointBBoxCoder",
+    "AnchorFreeBBoxCoder",
+    "GroupFree3DBBoxCoder",
 ]

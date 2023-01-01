@@ -42,18 +42,30 @@ class SUNRGBDDataset(Custom3DDataset):
         test_mode (bool, optional): Whether the dataset is in test mode.
             Defaults to False.
     """
-    CLASSES = ('bed', 'table', 'sofa', 'chair', 'toilet', 'desk', 'dresser',
-               'night_stand', 'bookshelf', 'bathtub')
+    CLASSES = (
+        "bed",
+        "table",
+        "sofa",
+        "chair",
+        "toilet",
+        "desk",
+        "dresser",
+        "night_stand",
+        "bookshelf",
+        "bathtub",
+    )
 
-    def __init__(self,
-                 data_root,
-                 ann_file,
-                 pipeline=None,
-                 classes=None,
-                 modality=dict(use_camera=True, use_lidar=True),
-                 box_type_3d='Depth',
-                 filter_empty_gt=True,
-                 test_mode=False):
+    def __init__(
+        self,
+        data_root,
+        ann_file,
+        pipeline=None,
+        classes=None,
+        modality=dict(use_camera=True, use_lidar=True),
+        box_type_3d="Depth",
+        filter_empty_gt=True,
+        test_mode=False,
+    ):
         super().__init__(
             data_root=data_root,
             ann_file=ann_file,
@@ -62,10 +74,10 @@ class SUNRGBDDataset(Custom3DDataset):
             modality=modality,
             box_type_3d=box_type_3d,
             filter_empty_gt=filter_empty_gt,
-            test_mode=test_mode)
-        assert 'use_camera' in self.modality and \
-            'use_lidar' in self.modality
-        assert self.modality['use_camera'] or self.modality['use_lidar']
+            test_mode=test_mode,
+        )
+        assert "use_camera" in self.modality and "use_lidar" in self.modality
+        assert self.modality["use_camera"] or self.modality["use_lidar"]
 
     def get_data_info(self, index):
         """Get data info according to the given index.
@@ -86,33 +98,32 @@ class SUNRGBDDataset(Custom3DDataset):
                 - ann_info (dict): Annotation info.
         """
         info = self.data_infos[index]
-        sample_idx = info['point_cloud']['lidar_idx']
-        assert info['point_cloud']['lidar_idx'] == info['image']['image_idx']
+        sample_idx = info["point_cloud"]["lidar_idx"]
+        assert info["point_cloud"]["lidar_idx"] == info["image"]["image_idx"]
         input_dict = dict(sample_idx=sample_idx)
 
-        if self.modality['use_lidar']:
-            pts_filename = osp.join(self.data_root, info['pts_path'])
-            input_dict['pts_filename'] = pts_filename
-            input_dict['file_name'] = pts_filename
+        if self.modality["use_lidar"]:
+            pts_filename = osp.join(self.data_root, info["pts_path"])
+            input_dict["pts_filename"] = pts_filename
+            input_dict["file_name"] = pts_filename
 
-        if self.modality['use_camera']:
+        if self.modality["use_camera"]:
             img_filename = osp.join(
-                osp.join(self.data_root, 'sunrgbd_trainval'),
-                info['image']['image_path'])
-            input_dict['img_prefix'] = None
-            input_dict['img_info'] = dict(filename=img_filename)
-            calib = info['calib']
-            rt_mat = calib['Rt']
+                osp.join(self.data_root, "sunrgbd_trainval"), info["image"]["image_path"]
+            )
+            input_dict["img_prefix"] = None
+            input_dict["img_info"] = dict(filename=img_filename)
+            calib = info["calib"]
+            rt_mat = calib["Rt"]
             # follow Coord3DMode.convert_point
-            rt_mat = np.array([[1, 0, 0], [0, 0, -1], [0, 1, 0]
-                               ]) @ rt_mat.transpose(1, 0)
-            depth2img = calib['K'] @ rt_mat
-            input_dict['depth2img'] = depth2img
+            rt_mat = np.array([[1, 0, 0], [0, 0, -1], [0, 1, 0]]) @ rt_mat.transpose(1, 0)
+            depth2img = calib["K"] @ rt_mat
+            input_dict["depth2img"] = depth2img
 
         if not self.test_mode:
             annos = self.get_ann_info(index)
-            input_dict['ann_info'] = annos
-            if self.filter_empty_gt and len(annos['gt_bboxes_3d']) == 0:
+            input_dict["ann_info"] = annos
+            if self.filter_empty_gt and len(annos["gt_bboxes_3d"]) == 0:
                 return None
         return input_dict
 
@@ -133,28 +144,27 @@ class SUNRGBDDataset(Custom3DDataset):
         """
         # Use index to get the annos, thus the evalhook could also use this api
         info = self.data_infos[index]
-        if info['annos']['gt_num'] != 0:
-            gt_bboxes_3d = info['annos']['gt_boxes_upright_depth'].astype(
-                np.float32)  # k, 6
-            gt_labels_3d = info['annos']['class'].astype(np.long)
+        if info["annos"]["gt_num"] != 0:
+            gt_bboxes_3d = info["annos"]["gt_boxes_upright_depth"].astype(np.float32)  # k, 6
+            gt_labels_3d = info["annos"]["class"].astype(np.long)
         else:
             gt_bboxes_3d = np.zeros((0, 7), dtype=np.float32)
-            gt_labels_3d = np.zeros((0, ), dtype=np.long)
+            gt_labels_3d = np.zeros((0,), dtype=np.long)
 
         # to target box structure
-        gt_bboxes_3d = DepthInstance3DBoxes(
-            gt_bboxes_3d, origin=(0.5, 0.5, 0.5)).convert_to(self.box_mode_3d)
+        gt_bboxes_3d = DepthInstance3DBoxes(gt_bboxes_3d, origin=(0.5, 0.5, 0.5)).convert_to(
+            self.box_mode_3d
+        )
 
-        anns_results = dict(
-            gt_bboxes_3d=gt_bboxes_3d, gt_labels_3d=gt_labels_3d)
+        anns_results = dict(gt_bboxes_3d=gt_bboxes_3d, gt_labels_3d=gt_labels_3d)
 
-        if self.modality['use_camera']:
-            if info['annos']['gt_num'] != 0:
-                gt_bboxes_2d = info['annos']['bbox'].astype(np.float32)
+        if self.modality["use_camera"]:
+            if info["annos"]["gt_num"] != 0:
+                gt_bboxes_2d = info["annos"]["bbox"].astype(np.float32)
             else:
                 gt_bboxes_2d = np.zeros((0, 4), dtype=np.float32)
-            anns_results['bboxes'] = gt_bboxes_2d
-            anns_results['labels'] = gt_labels_3d
+            anns_results["bboxes"] = gt_bboxes_2d
+            anns_results["labels"] = gt_labels_3d
 
         return anns_results
 
@@ -162,19 +172,17 @@ class SUNRGBDDataset(Custom3DDataset):
         """Build the default pipeline for this dataset."""
         pipeline = [
             dict(
-                type='LoadPointsFromFile',
-                coord_type='DEPTH',
+                type="LoadPointsFromFile",
+                coord_type="DEPTH",
                 shift_height=False,
                 load_dim=6,
-                use_dim=[0, 1, 2]),
-            dict(
-                type='DefaultFormatBundle3D',
-                class_names=self.CLASSES,
-                with_label=False),
-            dict(type='Collect3D', keys=['points'])
+                use_dim=[0, 1, 2],
+            ),
+            dict(type="DefaultFormatBundle3D", class_names=self.CLASSES, with_label=False),
+            dict(type="Collect3D", keys=["points"]),
         ]
-        if self.modality['use_camera']:
-            pipeline.insert(0, dict(type='LoadImageFromFile'))
+        if self.modality["use_camera"]:
+            pipeline.insert(0, dict(type="LoadImageFromFile"))
         return Compose(pipeline)
 
     def show(self, results, out_dir, show=True, pipeline=None):
@@ -187,32 +195,28 @@ class SUNRGBDDataset(Custom3DDataset):
             pipeline (list[dict], optional): raw data loading for showing.
                 Default: None.
         """
-        assert out_dir is not None, 'Expect out_dir, got none.'
+        assert out_dir is not None, "Expect out_dir, got none."
         pipeline = self._get_pipeline(pipeline)
         for i, result in enumerate(results):
             data_info = self.data_infos[i]
-            pts_path = data_info['pts_path']
-            file_name = osp.split(pts_path)[-1].split('.')[0]
-            points, img_metas, img = self._extract_data(
-                i, pipeline, ['points', 'img_metas', 'img'])
+            pts_path = data_info["pts_path"]
+            file_name = osp.split(pts_path)[-1].split(".")[0]
+            points, img_metas, img = self._extract_data(i, pipeline, ["points", "img_metas", "img"])
             # scale colors to [0, 255]
             points = points.numpy()
             points[:, 3:] *= 255
 
-            gt_bboxes = self.get_ann_info(i)['gt_bboxes_3d'].tensor.numpy()
-            pred_bboxes = result['boxes_3d'].tensor.numpy()
-            show_result(points, gt_bboxes.copy(), pred_bboxes.copy(), out_dir,
-                        file_name, show)
+            gt_bboxes = self.get_ann_info(i)["gt_bboxes_3d"].tensor.numpy()
+            pred_bboxes = result["boxes_3d"].tensor.numpy()
+            show_result(points, gt_bboxes.copy(), pred_bboxes.copy(), out_dir, file_name, show)
 
             # multi-modality visualization
-            if self.modality['use_camera']:
+            if self.modality["use_camera"]:
                 img = img.numpy()
                 # need to transpose channel to first dim
                 img = img.transpose(1, 2, 0)
-                pred_bboxes = DepthInstance3DBoxes(
-                    pred_bboxes, origin=(0.5, 0.5, 0))
-                gt_bboxes = DepthInstance3DBoxes(
-                    gt_bboxes, origin=(0.5, 0.5, 0))
+                pred_bboxes = DepthInstance3DBoxes(pred_bboxes, origin=(0.5, 0.5, 0))
+                gt_bboxes = DepthInstance3DBoxes(gt_bboxes, origin=(0.5, 0.5, 0))
                 show_multi_modality_result(
                     img,
                     gt_bboxes,
@@ -220,19 +224,22 @@ class SUNRGBDDataset(Custom3DDataset):
                     None,
                     out_dir,
                     file_name,
-                    box_mode='depth',
+                    box_mode="depth",
                     img_metas=img_metas,
-                    show=show)
+                    show=show,
+                )
 
-    def evaluate(self,
-                 results,
-                 metric=None,
-                 iou_thr=(0.25, 0.5),
-                 iou_thr_2d=(0.5, ),
-                 logger=None,
-                 show=False,
-                 out_dir=None,
-                 pipeline=None):
+    def evaluate(
+        self,
+        results,
+        metric=None,
+        iou_thr=(0.25, 0.5),
+        iou_thr_2d=(0.5,),
+        logger=None,
+        show=False,
+        out_dir=None,
+        pipeline=None,
+    ):
         """Evaluate.
 
         Evaluation in indoor protocol.
@@ -254,14 +261,12 @@ class SUNRGBDDataset(Custom3DDataset):
         """
         # evaluate 3D detection performance
         if isinstance(results[0], dict):
-            return super().evaluate(results, metric, iou_thr, logger, show,
-                                    out_dir, pipeline)
+            return super().evaluate(results, metric, iou_thr, logger, show, out_dir, pipeline)
         # evaluate 2D detection performance
         else:
             eval_results = OrderedDict()
             annotations = [self.get_ann_info(i) for i in range(len(self))]
-            iou_thr_2d = (iou_thr_2d) if isinstance(iou_thr_2d,
-                                                    float) else iou_thr_2d
+            iou_thr_2d = (iou_thr_2d) if isinstance(iou_thr_2d, float) else iou_thr_2d
             for iou_thr_2d_single in iou_thr_2d:
                 mean_ap, _ = eval_map(
                     results,
@@ -269,6 +274,7 @@ class SUNRGBDDataset(Custom3DDataset):
                     scale_ranges=None,
                     iou_thr=iou_thr_2d_single,
                     dataset=self.CLASSES,
-                    logger=logger)
-                eval_results['mAP_' + str(iou_thr_2d_single)] = mean_ap
+                    logger=logger,
+                )
+                eval_results["mAP_" + str(iou_thr_2d_single)] = mean_ap
             return eval_results

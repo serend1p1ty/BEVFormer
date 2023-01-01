@@ -14,17 +14,19 @@ from .single_stage import SingleStage3DDetector
 class VoxelNet(SingleStage3DDetector):
     r"""`VoxelNet <https://arxiv.org/abs/1711.06396>`_ for 3D detection."""
 
-    def __init__(self,
-                 voxel_layer,
-                 voxel_encoder,
-                 middle_encoder,
-                 backbone,
-                 neck=None,
-                 bbox_head=None,
-                 train_cfg=None,
-                 test_cfg=None,
-                 init_cfg=None,
-                 pretrained=None):
+    def __init__(
+        self,
+        voxel_layer,
+        voxel_encoder,
+        middle_encoder,
+        backbone,
+        neck=None,
+        bbox_head=None,
+        train_cfg=None,
+        test_cfg=None,
+        init_cfg=None,
+        pretrained=None,
+    ):
         super(VoxelNet, self).__init__(
             backbone=backbone,
             neck=neck,
@@ -32,7 +34,8 @@ class VoxelNet(SingleStage3DDetector):
             train_cfg=train_cfg,
             test_cfg=test_cfg,
             init_cfg=init_cfg,
-            pretrained=pretrained)
+            pretrained=pretrained,
+        )
         self.voxel_layer = Voxelization(**voxel_layer)
         self.voxel_encoder = builder.build_voxel_encoder(voxel_encoder)
         self.middle_encoder = builder.build_middle_encoder(middle_encoder)
@@ -62,17 +65,12 @@ class VoxelNet(SingleStage3DDetector):
         num_points = torch.cat(num_points, dim=0)
         coors_batch = []
         for i, coor in enumerate(coors):
-            coor_pad = F.pad(coor, (1, 0), mode='constant', value=i)
+            coor_pad = F.pad(coor, (1, 0), mode="constant", value=i)
             coors_batch.append(coor_pad)
         coors_batch = torch.cat(coors_batch, dim=0)
         return voxels, num_points, coors_batch
 
-    def forward_train(self,
-                      points,
-                      img_metas,
-                      gt_bboxes_3d,
-                      gt_labels_3d,
-                      gt_bboxes_ignore=None):
+    def forward_train(self, points, img_metas, gt_bboxes_3d, gt_labels_3d, gt_bboxes_ignore=None):
         """Training forward function.
 
         Args:
@@ -91,19 +89,16 @@ class VoxelNet(SingleStage3DDetector):
         x = self.extract_feat(points, img_metas)
         outs = self.bbox_head(x)
         loss_inputs = outs + (gt_bboxes_3d, gt_labels_3d, img_metas)
-        losses = self.bbox_head.loss(
-            *loss_inputs, gt_bboxes_ignore=gt_bboxes_ignore)
+        losses = self.bbox_head.loss(*loss_inputs, gt_bboxes_ignore=gt_bboxes_ignore)
         return losses
 
     def simple_test(self, points, img_metas, imgs=None, rescale=False):
         """Test function without augmentaiton."""
         x = self.extract_feat(points, img_metas)
         outs = self.bbox_head(x)
-        bbox_list = self.bbox_head.get_bboxes(
-            *outs, img_metas, rescale=rescale)
+        bbox_list = self.bbox_head.get_bboxes(*outs, img_metas, rescale=rescale)
         bbox_results = [
-            bbox3d2result(bboxes, scores, labels)
-            for bboxes, scores, labels in bbox_list
+            bbox3d2result(bboxes, scores, labels) for bboxes, scores, labels in bbox_list
         ]
         return bbox_results
 
@@ -115,8 +110,7 @@ class VoxelNet(SingleStage3DDetector):
         aug_bboxes = []
         for x, img_meta in zip(feats, img_metas):
             outs = self.bbox_head(x)
-            bbox_list = self.bbox_head.get_bboxes(
-                *outs, img_meta, rescale=rescale)
+            bbox_list = self.bbox_head.get_bboxes(*outs, img_meta, rescale=rescale)
             bbox_list = [
                 dict(boxes_3d=bboxes, scores_3d=scores, labels_3d=labels)
                 for bboxes, scores, labels in bbox_list
@@ -124,7 +118,6 @@ class VoxelNet(SingleStage3DDetector):
             aug_bboxes.append(bbox_list[0])
 
         # after merging, bboxes will be rescaled to the original image size
-        merged_bboxes = merge_aug_bboxes_3d(aug_bboxes, img_metas,
-                                            self.bbox_head.test_cfg)
+        merged_bboxes = merge_aug_bboxes_3d(aug_bboxes, img_metas, self.bbox_head.test_cfg)
 
         return [merged_bboxes]

@@ -29,18 +29,24 @@ def is_loading_function(transform):
             When transform is `MultiScaleFlipAug3D`, we return None.
     """
     # TODO: use more elegant way to distinguish loading modules
-    loading_functions = (LoadImageFromFile, LoadPointsFromFile,
-                         LoadAnnotations3D, LoadMultiViewImageFromFiles,
-                         LoadPointsFromMultiSweeps, DefaultFormatBundle3D,
-                         Collect3D, LoadImageFromFileMono3D,
-                         PointSegClassMapping)
+    loading_functions = (
+        LoadImageFromFile,
+        LoadPointsFromFile,
+        LoadAnnotations3D,
+        LoadMultiViewImageFromFiles,
+        LoadPointsFromMultiSweeps,
+        DefaultFormatBundle3D,
+        Collect3D,
+        LoadImageFromFileMono3D,
+        PointSegClassMapping,
+    )
     if isinstance(transform, dict):
-        obj_cls = PIPELINES.get(transform['type'])
+        obj_cls = PIPELINES.get(transform["type"])
         if obj_cls is None:
             return False
         if obj_cls in loading_functions:
             return True
-        if obj_cls in (MultiScaleFlipAug3D, ):
+        if obj_cls in (MultiScaleFlipAug3D,):
             return None
     elif callable(transform):
         if isinstance(transform, loading_functions):
@@ -101,15 +107,15 @@ def get_loading_pipeline(pipeline):
         if is_loading is None:  # MultiScaleFlipAug3D
             # extract its inner pipeline
             if isinstance(transform, dict):
-                inner_pipeline = transform.get('transforms', [])
+                inner_pipeline = transform.get("transforms", [])
             else:
                 inner_pipeline = transform.transforms.transforms
             loading_pipeline.extend(get_loading_pipeline(inner_pipeline))
         elif is_loading:
             loading_pipeline.append(transform)
-    assert len(loading_pipeline) > 0, \
-        'The data pipeline in your config file must include ' \
-        'loading step.'
+    assert len(loading_pipeline) > 0, (
+        "The data pipeline in your config file must include " "loading step."
+    )
     return loading_pipeline
 
 

@@ -10,27 +10,25 @@ from .single_stage import SingleStage3DDetector
 class GroupFree3DNet(SingleStage3DDetector):
     """`Group-Free 3D <https://arxiv.org/abs/2104.00678>`_."""
 
-    def __init__(self,
-                 backbone,
-                 bbox_head=None,
-                 train_cfg=None,
-                 test_cfg=None,
-                 pretrained=None):
+    def __init__(self, backbone, bbox_head=None, train_cfg=None, test_cfg=None, pretrained=None):
         super(GroupFree3DNet, self).__init__(
             backbone=backbone,
             bbox_head=bbox_head,
             train_cfg=train_cfg,
             test_cfg=test_cfg,
-            pretrained=pretrained)
+            pretrained=pretrained,
+        )
 
-    def forward_train(self,
-                      points,
-                      img_metas,
-                      gt_bboxes_3d,
-                      gt_labels_3d,
-                      pts_semantic_mask=None,
-                      pts_instance_mask=None,
-                      gt_bboxes_ignore=None):
+    def forward_train(
+        self,
+        points,
+        img_metas,
+        gt_bboxes_3d,
+        gt_labels_3d,
+        pts_semantic_mask=None,
+        pts_instance_mask=None,
+        gt_bboxes_ignore=None,
+    ):
         """Forward of training.
 
         Args:
@@ -53,10 +51,15 @@ class GroupFree3DNet(SingleStage3DDetector):
 
         x = self.extract_feat(points_cat)
         bbox_preds = self.bbox_head(x, self.train_cfg.sample_mod)
-        loss_inputs = (points, gt_bboxes_3d, gt_labels_3d, pts_semantic_mask,
-                       pts_instance_mask, img_metas)
-        losses = self.bbox_head.loss(
-            bbox_preds, *loss_inputs, gt_bboxes_ignore=gt_bboxes_ignore)
+        loss_inputs = (
+            points,
+            gt_bboxes_3d,
+            gt_labels_3d,
+            pts_semantic_mask,
+            pts_instance_mask,
+            img_metas,
+        )
+        losses = self.bbox_head.loss(bbox_preds, *loss_inputs, gt_bboxes_ignore=gt_bboxes_ignore)
         return losses
 
     def simple_test(self, points, img_metas, imgs=None, rescale=False):
@@ -73,11 +76,9 @@ class GroupFree3DNet(SingleStage3DDetector):
 
         x = self.extract_feat(points_cat)
         bbox_preds = self.bbox_head(x, self.test_cfg.sample_mod)
-        bbox_list = self.bbox_head.get_bboxes(
-            points_cat, bbox_preds, img_metas, rescale=rescale)
+        bbox_list = self.bbox_head.get_bboxes(points_cat, bbox_preds, img_metas, rescale=rescale)
         bbox_results = [
-            bbox3d2result(bboxes, scores, labels)
-            for bboxes, scores, labels in bbox_list
+            bbox3d2result(bboxes, scores, labels) for bboxes, scores, labels in bbox_list
         ]
         return bbox_results
 
@@ -90,8 +91,7 @@ class GroupFree3DNet(SingleStage3DDetector):
         aug_bboxes = []
         for x, pts_cat, img_meta in zip(feats, points_cat, img_metas):
             bbox_preds = self.bbox_head(x, self.test_cfg.sample_mod)
-            bbox_list = self.bbox_head.get_bboxes(
-                pts_cat, bbox_preds, img_meta, rescale=rescale)
+            bbox_list = self.bbox_head.get_bboxes(pts_cat, bbox_preds, img_meta, rescale=rescale)
             bbox_list = [
                 dict(boxes_3d=bboxes, scores_3d=scores, labels_3d=labels)
                 for bboxes, scores, labels in bbox_list
@@ -99,7 +99,6 @@ class GroupFree3DNet(SingleStage3DDetector):
             aug_bboxes.append(bbox_list[0])
 
         # after merging, bboxes will be rescaled to the original image size
-        merged_bboxes = merge_aug_bboxes_3d(aug_bboxes, img_metas,
-                                            self.bbox_head.test_cfg)
+        merged_bboxes = merge_aug_bboxes_3d(aug_bboxes, img_metas, self.bbox_head.test_cfg)
 
         return [merged_bboxes]

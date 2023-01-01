@@ -35,20 +35,22 @@ class PerceptionTransformer(BaseModule):
             `as_two_stage` as True. Default: 300.
     """
 
-    def __init__(self,
-                 num_feature_levels=4,
-                 num_cams=6,
-                 two_stage_num_proposals=300,
-                 encoder=None,
-                 decoder=None,
-                 embed_dims=256,
-                 rotate_prev_bev=True,
-                 use_shift=True,
-                 use_can_bus=True,
-                 can_bus_norm=True,
-                 use_cams_embeds=True,
-                 rotate_center=[100, 100],
-                 **kwargs):
+    def __init__(
+        self,
+        num_feature_levels=4,
+        num_cams=6,
+        two_stage_num_proposals=300,
+        encoder=None,
+        decoder=None,
+        embed_dims=256,
+        rotate_prev_bev=True,
+        use_shift=True,
+        use_can_bus=True,
+        can_bus_norm=True,
+        use_cams_embeds=True,
+        rotate_center=[100, 100],
+        **kwargs
+    ):
         super(PerceptionTransformer, self).__init__(**kwargs)
         self.encoder = build_transformer_layer_sequence(encoder)
         self.decoder = build_transformer_layer_sequence(decoder)
@@ -69,11 +71,9 @@ class PerceptionTransformer(BaseModule):
 
     def init_layers(self):
         """Initialize layers of the Detr3DTransformer."""
-        self.level_embeds = nn.Parameter(torch.Tensor(
-            self.num_feature_levels, self.embed_dims))
+        self.level_embeds = nn.Parameter(torch.Tensor(self.num_feature_levels, self.embed_dims))
         if self.use_cams_embeds:
-            self.cams_embeds = nn.Parameter(
-                torch.Tensor(self.num_cams, self.embed_dims))
+            self.cams_embeds = nn.Parameter(torch.Tensor(self.num_cams, self.embed_dims))
         self.reference_points = nn.Linear(self.embed_dims, 3)
         # self.can_bus_mlp = nn.Sequential(
         #     nn.Linear(18, self.embed_dims // 2),
@@ -90,8 +90,11 @@ class PerceptionTransformer(BaseModule):
             if p.dim() > 1:
                 nn.init.xavier_uniform_(p)
         for m in self.modules():
-            if isinstance(m, MSDeformableAttention3D) or isinstance(m, TemporalSelfAttention) \
-                    or isinstance(m, CustomMSDeformableAttention):
+            if (
+                isinstance(m, MSDeformableAttention3D)
+                or isinstance(m, TemporalSelfAttention)
+                or isinstance(m, CustomMSDeformableAttention)
+            ):
                 try:
                     m.init_weight()
                 except AttributeError:
@@ -99,20 +102,21 @@ class PerceptionTransformer(BaseModule):
         normal_(self.level_embeds)
         if self.use_cams_embeds:
             normal_(self.cams_embeds)
-        xavier_init(self.reference_points, distribution='uniform', bias=0.)
+        xavier_init(self.reference_points, distribution="uniform", bias=0.0)
         # xavier_init(self.can_bus_mlp, distribution='uniform', bias=0.)
 
-    @auto_fp16(apply_to=('mlvl_feats', 'bev_queries', 'prev_bev', 'bev_pos'))
+    @auto_fp16(apply_to=("mlvl_feats", "bev_queries", "prev_bev", "bev_pos"))
     def get_bev_features(
-            self,
-            mlvl_feats,
-            bev_queries,
-            bev_h,
-            bev_w,
-            grid_length=[0.512, 0.512],
-            bev_pos=None,
-            prev_bev=None,
-            **kwargs):
+        self,
+        mlvl_feats,
+        bev_queries,
+        bev_h,
+        bev_w,
+        grid_length=[0.512, 0.512],
+        bev_pos=None,
+        prev_bev=None,
+        **kwargs
+    ):
         """
         obtain bev features.
         """
@@ -155,13 +159,10 @@ class PerceptionTransformer(BaseModule):
             if self.rotate_prev_bev:
                 for i in range(bs):
                     # num_prev_bev = prev_bev.size(1)
-                    rotation_angle = kwargs['img_metas'][i]['can_bus'][-1]
-                    tmp_prev_bev = prev_bev[:, i].reshape(
-                        bev_h, bev_w, -1).permute(2, 0, 1)
-                    tmp_prev_bev = rotate(tmp_prev_bev, rotation_angle,
-                                          center=self.rotate_center)
-                    tmp_prev_bev = tmp_prev_bev.permute(1, 2, 0).reshape(
-                        bev_h * bev_w, 1, -1)
+                    rotation_angle = kwargs["img_metas"][i]["can_bus"][-1]
+                    tmp_prev_bev = prev_bev[:, i].reshape(bev_h, bev_w, -1).permute(2, 0, 1)
+                    tmp_prev_bev = rotate(tmp_prev_bev, rotation_angle, center=self.rotate_center)
+                    tmp_prev_bev = tmp_prev_bev.permute(1, 2, 0).reshape(bev_h * bev_w, 1, -1)
                     # [2500, 1, 256]
                     prev_bev[:, i] = tmp_prev_bev[:, 0]
 
@@ -183,23 +184,21 @@ class PerceptionTransformer(BaseModule):
             feat = feat.flatten(3).permute(1, 0, 3, 2)
             if self.use_cams_embeds:
                 feat = feat + self.cams_embeds[:, None, None, :].to(feat.dtype)
-            feat = feat + self.level_embeds[None,
-                                            None, lvl:lvl + 1, :].to(feat.dtype)
+            feat = feat + self.level_embeds[None, None, lvl : lvl + 1, :].to(feat.dtype)
             spatial_shapes.append(spatial_shape)
             feat_flatten.append(feat)
 
         # [6, 1, 15 * 25, 256]
         feat_flatten = torch.cat(feat_flatten, 2)
         # [[15, 25]]
-        spatial_shapes = torch.as_tensor(
-            spatial_shapes, dtype=torch.long, device=bev_pos.device)
+        spatial_shapes = torch.as_tensor(spatial_shapes, dtype=torch.long, device=bev_pos.device)
         # [0]
-        level_start_index = torch.cat((spatial_shapes.new_zeros(
-            (1,)), spatial_shapes.prod(1).cumsum(0)[:-1]))
+        level_start_index = torch.cat(
+            (spatial_shapes.new_zeros((1,)), spatial_shapes.prod(1).cumsum(0)[:-1])
+        )
 
         # [6, 375, 1, 256]
-        feat_flatten = feat_flatten.permute(
-            0, 2, 1, 3)  # (num_cam, H*W, bs, embed_dims)
+        feat_flatten = feat_flatten.permute(0, 2, 1, 3)  # (num_cam, H*W, bs, embed_dims)
 
         bev_embed = self.encoder(
             bev_queries,
@@ -217,19 +216,21 @@ class PerceptionTransformer(BaseModule):
 
         return bev_embed
 
-    @auto_fp16(apply_to=('mlvl_feats', 'bev_queries', 'object_query_embed', 'prev_bev', 'bev_pos'))
-    def forward(self,
-                mlvl_feats,
-                bev_queries,
-                object_query_embed,
-                bev_h,
-                bev_w,
-                grid_length=[0.512, 0.512],
-                bev_pos=None,
-                reg_branches=None,
-                cls_branches=None,
-                prev_bev=None,
-                **kwargs):
+    @auto_fp16(apply_to=("mlvl_feats", "bev_queries", "object_query_embed", "prev_bev", "bev_pos"))
+    def forward(
+        self,
+        mlvl_feats,
+        bev_queries,
+        object_query_embed,
+        bev_h,
+        bev_w,
+        grid_length=[0.512, 0.512],
+        bev_pos=None,
+        reg_branches=None,
+        cls_branches=None,
+        prev_bev=None,
+        **kwargs
+    ):
         """Forward function for `Detr3DTransformer`.
         Args:
             mlvl_feats (list(Tensor)): Input queries from
@@ -275,11 +276,11 @@ class PerceptionTransformer(BaseModule):
             grid_length=grid_length,
             bev_pos=bev_pos,
             prev_bev=prev_bev,
-            **kwargs)  # bev_embed shape: bs, bev_h*bev_w, embed_dims
+            **kwargs
+        )  # bev_embed shape: bs, bev_h*bev_w, embed_dims
 
         bs = mlvl_feats[0].size(0)
-        query_pos, query = torch.split(
-            object_query_embed, self.embed_dims, dim=1)
+        query_pos, query = torch.split(object_query_embed, self.embed_dims, dim=1)
         query_pos = query_pos.unsqueeze(0).expand(bs, -1, -1)
         query = query.unsqueeze(0).expand(bs, -1, -1)
         reference_points = self.reference_points(query_pos)
@@ -300,7 +301,8 @@ class PerceptionTransformer(BaseModule):
             cls_branches=cls_branches,
             spatial_shapes=torch.tensor([[bev_h, bev_w]], device=query.device),
             level_start_index=torch.tensor([0], device=query.device),
-            **kwargs)
+            **kwargs
+        )
 
         inter_references_out = inter_references
 

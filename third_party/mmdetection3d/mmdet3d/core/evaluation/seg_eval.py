@@ -20,9 +20,9 @@ def fast_hist(preds, labels, num_classes):
 
     k = (labels >= 0) & (labels < num_classes)
     bin_count = np.bincount(
-        num_classes * labels[k].astype(int) + preds[k],
-        minlength=num_classes**2)
-    return bin_count[:num_classes**2].reshape(num_classes, num_classes)
+        num_classes * labels[k].astype(int) + preds[k], minlength=num_classes**2
+    )
+    return bin_count[: num_classes**2].reshape(num_classes, num_classes)
 
 
 def per_class_iou(hist):
@@ -103,29 +103,29 @@ def seg_eval(gt_labels, seg_preds, label2cat, ignore_index, logger=None):
     acc = get_acc(sum(hist_list))
     acc_cls = get_acc_cls(sum(hist_list))
 
-    header = ['classes']
+    header = ["classes"]
     for i in range(len(label2cat)):
         header.append(label2cat[i])
-    header.extend(['miou', 'acc', 'acc_cls'])
+    header.extend(["miou", "acc", "acc_cls"])
 
     ret_dict = dict()
-    table_columns = [['results']]
+    table_columns = [["results"]]
     for i in range(len(label2cat)):
         ret_dict[label2cat[i]] = float(iou[i])
-        table_columns.append([f'{iou[i]:.4f}'])
-    ret_dict['miou'] = float(miou)
-    ret_dict['acc'] = float(acc)
-    ret_dict['acc_cls'] = float(acc_cls)
+        table_columns.append([f"{iou[i]:.4f}"])
+    ret_dict["miou"] = float(miou)
+    ret_dict["acc"] = float(acc)
+    ret_dict["acc_cls"] = float(acc_cls)
 
-    table_columns.append([f'{miou:.4f}'])
-    table_columns.append([f'{acc:.4f}'])
-    table_columns.append([f'{acc_cls:.4f}'])
+    table_columns.append([f"{miou:.4f}"])
+    table_columns.append([f"{acc:.4f}"])
+    table_columns.append([f"{acc_cls:.4f}"])
 
     table_data = [header]
     table_rows = list(zip(*table_columns))
     table_data += table_rows
     table = AsciiTable(table_data)
     table.inner_footing_row_border = True
-    print_log('\n' + table.table, logger=logger)
+    print_log("\n" + table.table, logger=logger)
 
     return ret_dict

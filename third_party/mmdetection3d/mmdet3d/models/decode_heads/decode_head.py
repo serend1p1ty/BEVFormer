@@ -26,20 +26,20 @@ class Base3DDecodeHead(BaseModule, metaclass=ABCMeta):
             masked BCE loss, ignore_index should be set to None. Default: 255.
     """
 
-    def __init__(self,
-                 channels,
-                 num_classes,
-                 dropout_ratio=0.5,
-                 conv_cfg=dict(type='Conv1d'),
-                 norm_cfg=dict(type='BN1d'),
-                 act_cfg=dict(type='ReLU'),
-                 loss_decode=dict(
-                     type='CrossEntropyLoss',
-                     use_sigmoid=False,
-                     class_weight=None,
-                     loss_weight=1.0),
-                 ignore_index=255,
-                 init_cfg=None):
+    def __init__(
+        self,
+        channels,
+        num_classes,
+        dropout_ratio=0.5,
+        conv_cfg=dict(type="Conv1d"),
+        norm_cfg=dict(type="BN1d"),
+        act_cfg=dict(type="ReLU"),
+        loss_decode=dict(
+            type="CrossEntropyLoss", use_sigmoid=False, class_weight=None, loss_weight=1.0
+        ),
+        ignore_index=255,
+        init_cfg=None,
+    ):
         super(Base3DDecodeHead, self).__init__(init_cfg=init_cfg)
         self.channels = channels
         self.num_classes = num_classes
@@ -105,7 +105,7 @@ class Base3DDecodeHead(BaseModule, metaclass=ABCMeta):
         output = self.conv_seg(feat)
         return output
 
-    @force_fp32(apply_to=('seg_logit', ))
+    @force_fp32(apply_to=("seg_logit",))
     def losses(self, seg_logit, seg_label):
         """Compute semantic segmentation loss.
 
@@ -116,6 +116,7 @@ class Base3DDecodeHead(BaseModule, metaclass=ABCMeta):
                 shape [B, N].
         """
         loss = dict()
-        loss['loss_sem_seg'] = self.loss_decode(
-            seg_logit, seg_label, ignore_index=self.ignore_index)
+        loss["loss_sem_seg"] = self.loss_decode(
+            seg_logit, seg_label, ignore_index=self.ignore_index
+        )
         return loss

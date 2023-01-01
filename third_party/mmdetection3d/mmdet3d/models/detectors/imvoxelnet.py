@@ -11,17 +11,19 @@ from mmdet.models.detectors import BaseDetector
 class ImVoxelNet(BaseDetector):
     r"""`ImVoxelNet <https://arxiv.org/abs/2106.01178>`_."""
 
-    def __init__(self,
-                 backbone,
-                 neck,
-                 neck_3d,
-                 bbox_head,
-                 n_voxels,
-                 anchor_generator,
-                 train_cfg=None,
-                 test_cfg=None,
-                 pretrained=None,
-                 init_cfg=None):
+    def __init__(
+        self,
+        backbone,
+        neck,
+        neck_3d,
+        bbox_head,
+        n_voxels,
+        anchor_generator,
+        train_cfg=None,
+        test_cfg=None,
+        pretrained=None,
+        init_cfg=None,
+    ):
         super().__init__(init_cfg=init_cfg)
         self.backbone = build_backbone(backbone)
         self.neck = build_neck(neck)
@@ -46,37 +48,41 @@ class ImVoxelNet(BaseDetector):
         """
         x = self.backbone(img)
         x = self.neck(x)[0]
-        points = self.anchor_generator.grid_anchors(
-            [self.n_voxels[::-1]], device=img.device)[0][:, :3]
+        points = self.anchor_generator.grid_anchors([self.n_voxels[::-1]], device=img.device)[0][
+            :, :3
+        ]
         volumes = []
         for feature, img_meta in zip(x, img_metas):
             img_scale_factor = (
-                points.new_tensor(img_meta['scale_factor'][:2])
-                if 'scale_factor' in img_meta.keys() else 1)
-            img_flip = img_meta['flip'] if 'flip' in img_meta.keys() else False
+                points.new_tensor(img_meta["scale_factor"][:2])
+                if "scale_factor" in img_meta.keys()
+                else 1
+            )
+            img_flip = img_meta["flip"] if "flip" in img_meta.keys() else False
             img_crop_offset = (
-                points.new_tensor(img_meta['img_crop_offset'])
-                if 'img_crop_offset' in img_meta.keys() else 0)
+                points.new_tensor(img_meta["img_crop_offset"])
+                if "img_crop_offset" in img_meta.keys()
+                else 0
+            )
             volume = point_sample(
                 img_meta,
                 img_features=feature[None, ...],
                 points=points,
-                proj_mat=points.new_tensor(img_meta['lidar2img']),
-                coord_type='LIDAR',
+                proj_mat=points.new_tensor(img_meta["lidar2img"]),
+                coord_type="LIDAR",
                 img_scale_factor=img_scale_factor,
                 img_crop_offset=img_crop_offset,
                 img_flip=img_flip,
                 img_pad_shape=img.shape[-2:],
-                img_shape=img_meta['img_shape'][:2],
-                aligned=False)
-            volumes.append(
-                volume.reshape(self.n_voxels[::-1] + [-1]).permute(3, 2, 1, 0))
+                img_shape=img_meta["img_shape"][:2],
+                aligned=False,
+            )
+            volumes.append(volume.reshape(self.n_voxels[::-1] + [-1]).permute(3, 2, 1, 0))
         x = torch.stack(volumes)
         x = self.neck_3d(x)
         return x
 
-    def forward_train(self, img, img_metas, gt_bboxes_3d, gt_labels_3d,
-                      **kwargs):
+    def forward_train(self, img, img_metas, gt_bboxes_3d, gt_labels_3d, **kwargs):
         """Forward of training.
 
         Args:

@@ -18,13 +18,12 @@ def test_voxelization():
     point_cloud_range = [0, -40, -3, 70.4, 40, 1]
     max_num_points = 1000
     self = VoxelGenerator(voxel_size, point_cloud_range, max_num_points)
-    data_path = './tests/data/kitti/training/velodyne_reduced/000000.bin'
-    load_points_from_file = LoadPointsFromFile(
-        coord_type='LIDAR', load_dim=4, use_dim=4)
+    data_path = "./tests/data/kitti/training/velodyne_reduced/000000.bin"
+    load_points_from_file = LoadPointsFromFile(coord_type="LIDAR", load_dim=4, use_dim=4)
     results = dict()
-    results['pts_filename'] = data_path
+    results["pts_filename"] = data_path
     results = load_points_from_file(results)
-    points = results['points'].tensor.numpy()
+    points = results["points"].tensor.numpy()
     voxels_generator = self.generate(points)
     coors, voxels, num_points_per_voxel = voxels_generator
     expected_coors = coors
@@ -33,11 +32,9 @@ def test_voxelization():
 
     points = torch.tensor(points)
     max_num_points = -1
-    dynamic_voxelization = Voxelization(voxel_size, point_cloud_range,
-                                        max_num_points)
+    dynamic_voxelization = Voxelization(voxel_size, point_cloud_range, max_num_points)
     max_num_points = 1000
-    hard_voxelization = Voxelization(voxel_size, point_cloud_range,
-                                     max_num_points)
+    hard_voxelization = Voxelization(voxel_size, point_cloud_range, max_num_points)
     # test hard_voxelization on cpu
     coors, voxels, num_points_per_voxel = hard_voxelization.forward(points)
     coors = coors.detach().numpy()
@@ -55,14 +52,13 @@ def test_voxelization():
         indices = _get_voxel_points_indices(points, coors, expected_voxels[i])
         num_points_current_voxel = points[indices].shape[0]
         assert num_points_current_voxel > 0
-        assert np.all(
-            points[indices] == expected_coors[i][:num_points_current_voxel])
+        assert np.all(points[indices] == expected_coors[i][:num_points_current_voxel])
         assert num_points_current_voxel == expected_num_points_per_voxel[i]
 
     if not torch.cuda.is_available():
-        pytest.skip('test requires GPU and torch+cuda')
+        pytest.skip("test requires GPU and torch+cuda")
     # test hard_voxelization on gpu
-    points = torch.tensor(points).contiguous().to(device='cuda:0')
+    points = torch.tensor(points).contiguous().to(device="cuda:0")
     coors, voxels, num_points_per_voxel = hard_voxelization.forward(points)
     coors = coors.cpu().detach().numpy()
     voxels = voxels.cpu().detach().numpy()
@@ -79,41 +75,35 @@ def test_voxelization():
         indices = _get_voxel_points_indices(points, coors, expected_voxels[i])
         num_points_current_voxel = points[indices].shape[0]
         assert num_points_current_voxel > 0
-        assert np.all(
-            points[indices] == expected_coors[i][:num_points_current_voxel])
+        assert np.all(points[indices] == expected_coors[i][:num_points_current_voxel])
         assert num_points_current_voxel == expected_num_points_per_voxel[i]
 
 
 def test_voxelization_nondeterministic():
     if not torch.cuda.is_available():
-        pytest.skip('test requires GPU and torch+cuda')
+        pytest.skip("test requires GPU and torch+cuda")
 
     voxel_size = [0.5, 0.5, 0.5]
     point_cloud_range = [0, -40, -3, 70.4, 40, 1]
-    data_path = './tests/data/kitti/training/velodyne_reduced/000000.bin'
-    load_points_from_file = LoadPointsFromFile(
-        coord_type='LIDAR', load_dim=4, use_dim=4)
+    data_path = "./tests/data/kitti/training/velodyne_reduced/000000.bin"
+    load_points_from_file = LoadPointsFromFile(coord_type="LIDAR", load_dim=4, use_dim=4)
     results = dict()
-    results['pts_filename'] = data_path
+    results["pts_filename"] = data_path
     results = load_points_from_file(results)
-    points = results['points'].tensor.numpy()
+    points = results["points"].tensor.numpy()
 
     points = torch.tensor(points)
     max_num_points = -1
-    dynamic_voxelization = Voxelization(voxel_size, point_cloud_range,
-                                        max_num_points)
+    dynamic_voxelization = Voxelization(voxel_size, point_cloud_range, max_num_points)
 
     max_num_points = 10
     max_voxels = 50
     hard_voxelization = Voxelization(
-        voxel_size,
-        point_cloud_range,
-        max_num_points,
-        max_voxels,
-        deterministic=False)
+        voxel_size, point_cloud_range, max_num_points, max_voxels, deterministic=False
+    )
 
     # test hard_voxelization (non-deterministic version) on gpu
-    points = torch.tensor(points).contiguous().to(device='cuda:0')
+    points = torch.tensor(points).contiguous().to(device="cuda:0")
     voxels, coors, num_points_per_voxel = hard_voxelization.forward(points)
     coors = coors.cpu().detach().numpy().tolist()
     voxels = voxels.cpu().detach().numpy().tolist()
@@ -149,7 +139,7 @@ def test_voxelization_nondeterministic():
 
     # test hard_voxelization (non-deterministic version) on gpu
     # with all input point in range
-    points = torch.tensor(points).contiguous().to(device='cuda:0')[:max_voxels]
+    points = torch.tensor(points).contiguous().to(device="cuda:0")[:max_voxels]
     coors_all = dynamic_voxelization.forward(points)
     valid_mask = coors_all.ge(0).all(-1)
     points = points[valid_mask]

@@ -16,7 +16,8 @@ def test_paconv_sa_module_msg():
             radii=[0.2, 0.4],
             sample_nums=[4, 8],
             mlp_channels=[[12, 16], [12, 32]],
-            paconv_num_kernels=[[4]]).cuda()
+            paconv_num_kernels=[[4]],
+        ).cuda()
 
     # paconv_num_kernels inner num should match as mlp_channels
     with pytest.raises(AssertionError):
@@ -25,7 +26,8 @@ def test_paconv_sa_module_msg():
             radii=[0.2, 0.4],
             sample_nums=[4, 8],
             mlp_channels=[[12, 16], [12, 32]],
-            paconv_num_kernels=[[4, 4], [8, 8]]).cuda()
+            paconv_num_kernels=[[4, 4], [8, 8]],
+        ).cuda()
 
     self = PAConvSAModuleMSG(
         num_point=16,
@@ -33,10 +35,11 @@ def test_paconv_sa_module_msg():
         sample_nums=[4, 8],
         mlp_channels=[[12, 16], [12, 32]],
         paconv_num_kernels=[[4], [8]],
-        norm_cfg=dict(type='BN2d'),
+        norm_cfg=dict(type="BN2d"),
         use_xyz=False,
-        pool_mod='max',
-        paconv_kernel_input='w_neighbor').cuda()
+        pool_mod="max",
+        paconv_kernel_input="w_neighbor",
+    ).cuda()
 
     assert self.mlps[0].layer0.in_channels == 12 * 2
     assert self.mlps[0].layer0.out_channels == 16
@@ -56,7 +59,7 @@ def test_paconv_sa_module_msg():
     with pytest.raises(AttributeError):
         _ = self.mlps[0].layer0.scorenet.mlps.layer3.activate
 
-    xyz = np.fromfile('tests/data/sunrgbd/points/000001.bin', np.float32)
+    xyz = np.fromfile("tests/data/sunrgbd/points/000001.bin", np.float32)
 
     # (B, N, 3)
     xyz = torch.from_numpy(xyz).view(1, -1, 3).cuda()
@@ -76,10 +79,11 @@ def test_paconv_sa_module_msg():
         sample_nums=[4, 8],
         mlp_channels=[[12, 16], [12, 32]],
         paconv_num_kernels=[[4], [8]],
-        norm_cfg=dict(type='BN2d'),
+        norm_cfg=dict(type="BN2d"),
         use_xyz=False,
-        pool_mod='max',
-        paconv_kernel_input='identity').cuda()
+        pool_mod="max",
+        paconv_kernel_input="identity",
+    ).cuda()
 
     assert self.mlps[0].layer0.in_channels == 12 * 1
     assert self.mlps[0].layer0.out_channels == 16
@@ -88,7 +92,7 @@ def test_paconv_sa_module_msg():
     assert self.mlps[1].layer0.out_channels == 32
     assert self.mlps[1].layer0.num_kernels == 8
 
-    xyz = np.fromfile('tests/data/sunrgbd/points/000001.bin', np.float32)
+    xyz = np.fromfile("tests/data/sunrgbd/points/000001.bin", np.float32)
 
     # (B, N, 3)
     xyz = torch.from_numpy(xyz).view(1, -1, 3).cuda()
@@ -106,24 +110,26 @@ def test_paconv_sa_module():
     if not torch.cuda.is_available():
         pytest.skip()
     from mmdet3d.ops import build_sa_module
+
     sa_cfg = dict(
-        type='PAConvSAModule',
+        type="PAConvSAModule",
         num_point=16,
         radius=0.2,
         num_sample=8,
         mlp_channels=[12, 32],
         paconv_num_kernels=[8],
-        norm_cfg=dict(type='BN2d'),
+        norm_cfg=dict(type="BN2d"),
         use_xyz=True,
-        pool_mod='max',
-        paconv_kernel_input='w_neighbor')
+        pool_mod="max",
+        paconv_kernel_input="w_neighbor",
+    )
     self = build_sa_module(sa_cfg).cuda()
 
     assert self.mlps[0].layer0.in_channels == 15 * 2
     assert self.mlps[0].layer0.out_channels == 32
     assert self.mlps[0].layer0.num_kernels == 8
 
-    xyz = np.fromfile('tests/data/sunrgbd/points/000001.bin', np.float32)
+    xyz = np.fromfile("tests/data/sunrgbd/points/000001.bin", np.float32)
 
     # (B, N, 3)
     xyz = torch.from_numpy(xyz[..., :3]).view(1, -1, 3).cuda()
@@ -138,20 +144,21 @@ def test_paconv_sa_module():
 
     # test kNN sampling when radius is None
     sa_cfg = dict(
-        type='PAConvSAModule',
+        type="PAConvSAModule",
         num_point=16,
         radius=None,
         num_sample=8,
         mlp_channels=[12, 32],
         paconv_num_kernels=[8],
-        norm_cfg=dict(type='BN2d'),
+        norm_cfg=dict(type="BN2d"),
         use_xyz=True,
-        pool_mod='max',
-        paconv_kernel_input='identity')
+        pool_mod="max",
+        paconv_kernel_input="identity",
+    )
     self = build_sa_module(sa_cfg).cuda()
     assert self.mlps[0].layer0.in_channels == 15 * 1
 
-    xyz = np.fromfile('tests/data/sunrgbd/points/000001.bin', np.float32)
+    xyz = np.fromfile("tests/data/sunrgbd/points/000001.bin", np.float32)
 
     xyz = torch.from_numpy(xyz[..., :3]).view(1, -1, 3).cuda()
     features = xyz.repeat([1, 1, 4]).transpose(1, 2).contiguous().cuda()
@@ -173,7 +180,8 @@ def test_paconv_cuda_sa_module_msg():
             radii=[0.2, 0.4],
             sample_nums=[4, 8],
             mlp_channels=[[12, 16], [12, 32]],
-            paconv_num_kernels=[[4]]).cuda()
+            paconv_num_kernels=[[4]],
+        ).cuda()
 
     # paconv_num_kernels inner num should match as mlp_channels
     with pytest.raises(AssertionError):
@@ -182,7 +190,8 @@ def test_paconv_cuda_sa_module_msg():
             radii=[0.2, 0.4],
             sample_nums=[4, 8],
             mlp_channels=[[12, 16], [12, 32]],
-            paconv_num_kernels=[[4, 4], [8, 8]]).cuda()
+            paconv_num_kernels=[[4, 4], [8, 8]],
+        ).cuda()
 
     self = PAConvCUDASAModuleMSG(
         num_point=16,
@@ -190,10 +199,11 @@ def test_paconv_cuda_sa_module_msg():
         sample_nums=[4, 8],
         mlp_channels=[[12, 16], [12, 32]],
         paconv_num_kernels=[[4], [8]],
-        norm_cfg=dict(type='BN2d'),
+        norm_cfg=dict(type="BN2d"),
         use_xyz=False,
-        pool_mod='max',
-        paconv_kernel_input='w_neighbor').cuda()
+        pool_mod="max",
+        paconv_kernel_input="w_neighbor",
+    ).cuda()
 
     assert self.mlps[0][0].in_channels == 12 * 2
     assert self.mlps[0][0].out_channels == 16
@@ -215,7 +225,7 @@ def test_paconv_cuda_sa_module_msg():
     with pytest.raises(AttributeError):
         _ = self.mlps[0][0].scorenet.mlps.layer3.activate
 
-    xyz = np.fromfile('tests/data/sunrgbd/points/000001.bin', np.float32)
+    xyz = np.fromfile("tests/data/sunrgbd/points/000001.bin", np.float32)
 
     # (B, N, 3)
     xyz = torch.from_numpy(xyz).view(1, -1, 3).cuda()
@@ -236,34 +246,37 @@ def test_paconv_cuda_sa_module_msg():
             sample_nums=[4, 8],
             mlp_channels=[[12, 16], [12, 32]],
             paconv_num_kernels=[[4], [8]],
-            norm_cfg=dict(type='BN2d'),
+            norm_cfg=dict(type="BN2d"),
             use_xyz=False,
-            pool_mod='max',
-            paconv_kernel_input='identity').cuda()
+            pool_mod="max",
+            paconv_kernel_input="identity",
+        ).cuda()
 
 
 def test_paconv_cuda_sa_module():
     if not torch.cuda.is_available():
         pytest.skip()
     from mmdet3d.ops import build_sa_module
+
     sa_cfg = dict(
-        type='PAConvCUDASAModule',
+        type="PAConvCUDASAModule",
         num_point=16,
         radius=0.2,
         num_sample=8,
         mlp_channels=[12, 32],
         paconv_num_kernels=[8],
-        norm_cfg=dict(type='BN2d'),
+        norm_cfg=dict(type="BN2d"),
         use_xyz=True,
-        pool_mod='max',
-        paconv_kernel_input='w_neighbor')
+        pool_mod="max",
+        paconv_kernel_input="w_neighbor",
+    )
     self = build_sa_module(sa_cfg).cuda()
 
     assert self.mlps[0][0].in_channels == 15 * 2
     assert self.mlps[0][0].out_channels == 32
     assert self.mlps[0][0].num_kernels == 8
 
-    xyz = np.fromfile('tests/data/sunrgbd/points/000001.bin', np.float32)
+    xyz = np.fromfile("tests/data/sunrgbd/points/000001.bin", np.float32)
 
     # (B, N, 3)
     xyz = torch.from_numpy(xyz[..., :3]).view(1, -1, 3).cuda()
@@ -278,19 +291,20 @@ def test_paconv_cuda_sa_module():
 
     # test kNN sampling when radius is None
     sa_cfg = dict(
-        type='PAConvCUDASAModule',
+        type="PAConvCUDASAModule",
         num_point=16,
         radius=None,
         num_sample=8,
         mlp_channels=[12, 32],
         paconv_num_kernels=[8],
-        norm_cfg=dict(type='BN2d'),
+        norm_cfg=dict(type="BN2d"),
         use_xyz=True,
-        pool_mod='max',
-        paconv_kernel_input='w_neighbor')
+        pool_mod="max",
+        paconv_kernel_input="w_neighbor",
+    )
     self = build_sa_module(sa_cfg).cuda()
 
-    xyz = np.fromfile('tests/data/sunrgbd/points/000001.bin', np.float32)
+    xyz = np.fromfile("tests/data/sunrgbd/points/000001.bin", np.float32)
 
     xyz = torch.from_numpy(xyz[..., :3]).view(1, -1, 3).cuda()
     features = xyz.repeat([1, 1, 4]).transpose(1, 2).contiguous().cuda()

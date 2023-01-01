@@ -43,17 +43,19 @@ class S3DISDataset(Custom3DDataset):
         test_mode (bool, optional): Whether the dataset is in test mode.
             Defaults to False.
     """
-    CLASSES = ('table', 'chair', 'sofa', 'bookcase', 'board')
+    CLASSES = ("table", "chair", "sofa", "bookcase", "board")
 
-    def __init__(self,
-                 data_root,
-                 ann_file,
-                 pipeline=None,
-                 classes=None,
-                 modality=None,
-                 box_type_3d='Depth',
-                 filter_empty_gt=True,
-                 test_mode=False):
+    def __init__(
+        self,
+        data_root,
+        ann_file,
+        pipeline=None,
+        classes=None,
+        modality=None,
+        box_type_3d="Depth",
+        filter_empty_gt=True,
+        test_mode=False,
+    ):
         super().__init__(
             data_root=data_root,
             ann_file=ann_file,
@@ -62,7 +64,8 @@ class S3DISDataset(Custom3DDataset):
             modality=modality,
             box_type_3d=box_type_3d,
             filter_empty_gt=filter_empty_gt,
-            test_mode=test_mode)
+            test_mode=test_mode,
+        )
 
     def get_ann_info(self, index):
         """Get annotation info according to the given index.
@@ -81,31 +84,27 @@ class S3DISDataset(Custom3DDataset):
         """
         # Use index to get the annos, thus the evalhook could also use this api
         info = self.data_infos[index]
-        if info['annos']['gt_num'] != 0:
-            gt_bboxes_3d = info['annos']['gt_boxes_upright_depth'].astype(
-                np.float32)  # k, 6
-            gt_labels_3d = info['annos']['class'].astype(np.long)
+        if info["annos"]["gt_num"] != 0:
+            gt_bboxes_3d = info["annos"]["gt_boxes_upright_depth"].astype(np.float32)  # k, 6
+            gt_labels_3d = info["annos"]["class"].astype(np.long)
         else:
             gt_bboxes_3d = np.zeros((0, 6), dtype=np.float32)
-            gt_labels_3d = np.zeros((0, ), dtype=np.long)
+            gt_labels_3d = np.zeros((0,), dtype=np.long)
 
         # to target box structure
         gt_bboxes_3d = DepthInstance3DBoxes(
-            gt_bboxes_3d,
-            box_dim=gt_bboxes_3d.shape[-1],
-            with_yaw=False,
-            origin=(0.5, 0.5, 0.5)).convert_to(self.box_mode_3d)
+            gt_bboxes_3d, box_dim=gt_bboxes_3d.shape[-1], with_yaw=False, origin=(0.5, 0.5, 0.5)
+        ).convert_to(self.box_mode_3d)
 
-        pts_instance_mask_path = osp.join(self.data_root,
-                                          info['pts_instance_mask_path'])
-        pts_semantic_mask_path = osp.join(self.data_root,
-                                          info['pts_semantic_mask_path'])
+        pts_instance_mask_path = osp.join(self.data_root, info["pts_instance_mask_path"])
+        pts_semantic_mask_path = osp.join(self.data_root, info["pts_semantic_mask_path"])
 
         anns_results = dict(
             gt_bboxes_3d=gt_bboxes_3d,
             gt_labels_3d=gt_labels_3d,
             pts_instance_mask_path=pts_instance_mask_path,
-            pts_semantic_mask_path=pts_semantic_mask_path)
+            pts_semantic_mask_path=pts_semantic_mask_path,
+        )
         return anns_results
 
     def get_data_info(self, index):
@@ -123,13 +122,13 @@ class S3DISDataset(Custom3DDataset):
                 - ann_info (dict): Annotation info.
         """
         info = self.data_infos[index]
-        pts_filename = osp.join(self.data_root, info['pts_path'])
+        pts_filename = osp.join(self.data_root, info["pts_path"])
         input_dict = dict(pts_filename=pts_filename)
 
         if not self.test_mode:
             annos = self.get_ann_info(index)
-            input_dict['ann_info'] = annos
-            if self.filter_empty_gt and ~(annos['gt_labels_3d'] != -1).any():
+            input_dict["ann_info"] = annos
+            if self.filter_empty_gt and ~(annos["gt_labels_3d"] != -1).any():
                 return None
         return input_dict
 
@@ -137,16 +136,14 @@ class S3DISDataset(Custom3DDataset):
         """Build the default pipeline for this dataset."""
         pipeline = [
             dict(
-                type='LoadPointsFromFile',
-                coord_type='DEPTH',
+                type="LoadPointsFromFile",
+                coord_type="DEPTH",
                 shift_height=False,
                 load_dim=6,
-                use_dim=[0, 1, 2, 3, 4, 5]),
-            dict(
-                type='DefaultFormatBundle3D',
-                class_names=self.CLASSES,
-                with_label=False),
-            dict(type='Collect3D', keys=['points'])
+                use_dim=[0, 1, 2, 3, 4, 5],
+            ),
+            dict(type="DefaultFormatBundle3D", class_names=self.CLASSES, with_label=False),
+            dict(type="Collect3D", keys=["points"]),
         ]
         return Compose(pipeline)
 
@@ -183,28 +180,54 @@ class _S3DISSegDataset(Custom3DSegDataset):
             data. For scenes with many points, we may sample it several times.
             Defaults to None.
     """
-    CLASSES = ('ceiling', 'floor', 'wall', 'beam', 'column', 'window', 'door',
-               'table', 'chair', 'sofa', 'bookcase', 'board', 'clutter')
+    CLASSES = (
+        "ceiling",
+        "floor",
+        "wall",
+        "beam",
+        "column",
+        "window",
+        "door",
+        "table",
+        "chair",
+        "sofa",
+        "bookcase",
+        "board",
+        "clutter",
+    )
 
     VALID_CLASS_IDS = tuple(range(13))
 
     ALL_CLASS_IDS = tuple(range(14))  # possibly with 'stair' class
 
-    PALETTE = [[0, 255, 0], [0, 0, 255], [0, 255, 255], [255, 255, 0],
-               [255, 0, 255], [100, 100, 255], [200, 200, 100],
-               [170, 120, 200], [255, 0, 0], [200, 100, 100], [10, 200, 100],
-               [200, 200, 200], [50, 50, 50]]
+    PALETTE = [
+        [0, 255, 0],
+        [0, 0, 255],
+        [0, 255, 255],
+        [255, 255, 0],
+        [255, 0, 255],
+        [100, 100, 255],
+        [200, 200, 100],
+        [170, 120, 200],
+        [255, 0, 0],
+        [200, 100, 100],
+        [10, 200, 100],
+        [200, 200, 200],
+        [50, 50, 50],
+    ]
 
-    def __init__(self,
-                 data_root,
-                 ann_file,
-                 pipeline=None,
-                 classes=None,
-                 palette=None,
-                 modality=None,
-                 test_mode=False,
-                 ignore_index=None,
-                 scene_idxs=None):
+    def __init__(
+        self,
+        data_root,
+        ann_file,
+        pipeline=None,
+        classes=None,
+        palette=None,
+        modality=None,
+        test_mode=False,
+        ignore_index=None,
+        scene_idxs=None,
+    ):
 
         super().__init__(
             data_root=data_root,
@@ -215,7 +238,8 @@ class _S3DISSegDataset(Custom3DSegDataset):
             modality=modality,
             test_mode=test_mode,
             ignore_index=ignore_index,
-            scene_idxs=scene_idxs)
+            scene_idxs=scene_idxs,
+        )
 
     def get_ann_info(self, index):
         """Get annotation info according to the given index.
@@ -231,8 +255,7 @@ class _S3DISSegDataset(Custom3DSegDataset):
         # Use index to get the annos, thus the evalhook could also use this api
         info = self.data_infos[index]
 
-        pts_semantic_mask_path = osp.join(self.data_root,
-                                          info['pts_semantic_mask_path'])
+        pts_semantic_mask_path = osp.join(self.data_root, info["pts_semantic_mask_path"])
 
         anns_results = dict(pts_semantic_mask_path=pts_semantic_mask_path)
         return anns_results
@@ -241,27 +264,27 @@ class _S3DISSegDataset(Custom3DSegDataset):
         """Build the default pipeline for this dataset."""
         pipeline = [
             dict(
-                type='LoadPointsFromFile',
-                coord_type='DEPTH',
+                type="LoadPointsFromFile",
+                coord_type="DEPTH",
                 shift_height=False,
                 use_color=True,
                 load_dim=6,
-                use_dim=[0, 1, 2, 3, 4, 5]),
+                use_dim=[0, 1, 2, 3, 4, 5],
+            ),
             dict(
-                type='LoadAnnotations3D',
+                type="LoadAnnotations3D",
                 with_bbox_3d=False,
                 with_label_3d=False,
                 with_mask_3d=False,
-                with_seg_3d=True),
+                with_seg_3d=True,
+            ),
             dict(
-                type='PointSegClassMapping',
+                type="PointSegClassMapping",
                 valid_cat_ids=self.VALID_CLASS_IDS,
-                max_cat_id=np.max(self.ALL_CLASS_IDS)),
-            dict(
-                type='DefaultFormatBundle3D',
-                with_label=False,
-                class_names=self.CLASSES),
-            dict(type='Collect3D', keys=['points', 'pts_semantic_mask'])
+                max_cat_id=np.max(self.ALL_CLASS_IDS),
+            ),
+            dict(type="DefaultFormatBundle3D", with_label=False, class_names=self.CLASSES),
+            dict(type="Collect3D", keys=["points", "pts_semantic_mask"]),
         ]
         return Compose(pipeline)
 
@@ -275,19 +298,27 @@ class _S3DISSegDataset(Custom3DSegDataset):
             pipeline (list[dict], optional): raw data loading for showing.
                 Default: None.
         """
-        assert out_dir is not None, 'Expect out_dir, got none.'
+        assert out_dir is not None, "Expect out_dir, got none."
         pipeline = self._get_pipeline(pipeline)
         for i, result in enumerate(results):
             data_info = self.data_infos[i]
-            pts_path = data_info['pts_path']
-            file_name = osp.split(pts_path)[-1].split('.')[0]
+            pts_path = data_info["pts_path"]
+            file_name = osp.split(pts_path)[-1].split(".")[0]
             points, gt_sem_mask = self._extract_data(
-                i, pipeline, ['points', 'pts_semantic_mask'], load_annos=True)
+                i, pipeline, ["points", "pts_semantic_mask"], load_annos=True
+            )
             points = points.numpy()
-            pred_sem_mask = result['semantic_mask'].numpy()
-            show_seg_result(points, gt_sem_mask,
-                            pred_sem_mask, out_dir, file_name,
-                            np.array(self.PALETTE), self.ignore_index, show)
+            pred_sem_mask = result["semantic_mask"].numpy()
+            show_seg_result(
+                points,
+                gt_sem_mask,
+                pred_sem_mask,
+                out_dir,
+                file_name,
+                np.array(self.PALETTE),
+                self.ignore_index,
+                show,
+            )
 
     def get_scene_idxs(self, scene_idxs):
         """Compute scene_idxs for data sampling.
@@ -296,8 +327,7 @@ class _S3DISSegDataset(Custom3DSegDataset):
         """
         # when testing, we load one whole scene every time
         if not self.test_mode and scene_idxs is None:
-            raise NotImplementedError(
-                'please provide re-sampled scene indexes for training')
+            raise NotImplementedError("please provide re-sampled scene indexes for training")
 
         return super().get_scene_idxs(scene_idxs)
 
@@ -337,16 +367,18 @@ class S3DISSegDataset(_S3DISSegDataset):
             times. Defaults to None.
     """
 
-    def __init__(self,
-                 data_root,
-                 ann_files,
-                 pipeline=None,
-                 classes=None,
-                 palette=None,
-                 modality=None,
-                 test_mode=False,
-                 ignore_index=None,
-                 scene_idxs=None):
+    def __init__(
+        self,
+        data_root,
+        ann_files,
+        pipeline=None,
+        classes=None,
+        palette=None,
+        modality=None,
+        test_mode=False,
+        ignore_index=None,
+        scene_idxs=None,
+    ):
 
         # make sure that ann_files and scene_idxs have same length
         ann_files = self._check_ann_files(ann_files)
@@ -362,7 +394,8 @@ class S3DISSegDataset(_S3DISSegDataset):
             modality=modality,
             test_mode=test_mode,
             ignore_index=ignore_index,
-            scene_idxs=scene_idxs[0])
+            scene_idxs=scene_idxs[0],
+        )
 
         datasets = [
             _S3DISSegDataset(
@@ -374,7 +407,9 @@ class S3DISSegDataset(_S3DISSegDataset):
                 modality=modality,
                 test_mode=test_mode,
                 ignore_index=ignore_index,
-                scene_idxs=scene_idxs[i]) for i in range(len(ann_files))
+                scene_idxs=scene_idxs[i],
+            )
+            for i in range(len(ann_files))
         ]
 
         # data_infos and scene_idxs need to be concat
@@ -391,9 +426,7 @@ class S3DISSegDataset(_S3DISSegDataset):
         Args:
             data_infos (list[list[dict]])
         """
-        self.data_infos = [
-            info for one_data_infos in data_infos for info in one_data_infos
-        ]
+        self.data_infos = [info for one_data_infos in data_infos for info in one_data_infos]
 
     def concat_scene_idxs(self, scene_idxs):
         """Concat scene_idxs from several datasets to form self.scene_idxs.
@@ -406,8 +439,9 @@ class S3DISSegDataset(_S3DISSegDataset):
         self.scene_idxs = np.array([], dtype=np.int32)
         offset = 0
         for one_scene_idxs in scene_idxs:
-            self.scene_idxs = np.concatenate(
-                [self.scene_idxs, one_scene_idxs + offset]).astype(np.int32)
+            self.scene_idxs = np.concatenate([self.scene_idxs, one_scene_idxs + offset]).astype(
+                np.int32
+            )
             offset = np.unique(self.scene_idxs).max() + 1
 
     @staticmethod

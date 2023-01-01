@@ -1,20 +1,21 @@
-_base_ = './hv_pointpillars_regnet-400mf_fpn_sbn-all_4x8_2x_nus-3d.py'
+_base_ = "./hv_pointpillars_regnet-400mf_fpn_sbn-all_4x8_2x_nus-3d.py"
 # model settings
 model = dict(
     pts_neck=dict(
-        type='SECONDFPN',
+        type="SECONDFPN",
         _delete_=True,
-        norm_cfg=dict(type='naiveSyncBN2d', eps=1e-3, momentum=0.01),
+        norm_cfg=dict(type="naiveSyncBN2d", eps=1e-3, momentum=0.01),
         in_channels=[64, 160, 384],
         upsample_strides=[1, 2, 4],
-        out_channels=[128, 128, 128]),
+        out_channels=[128, 128, 128],
+    ),
     pts_bbox_head=dict(
-        type='Anchor3DHead',
+        type="Anchor3DHead",
         in_channels=384,
         feat_channels=384,
         anchor_generator=dict(
             _delete_=True,
-            type='AlignedAnchor3DRangeGenerator',
+            type="AlignedAnchor3DRangeGenerator",
             ranges=[
                 [-49.6, -49.6, -1.80032795, 49.6, 49.6, -1.80032795],
                 [-49.6, -49.6, -1.74440365, 49.6, 49.6, -1.74440365],
@@ -35,4 +36,7 @@ model = dict(
             ],
             custom_values=[0, 0],
             rotations=[0, 1.57],
-            reshape_out=True)))
+            reshape_out=True,
+        ),
+    ),
+)
