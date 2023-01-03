@@ -9,20 +9,21 @@ from .voxelnet import VoxelNet
 
 @DETECTORS.register_module()
 class DynamicVoxelNet(VoxelNet):
-    r"""VoxelNet using `dynamic voxelization <https://arxiv.org/abs/1910.06528>`_.
-    """
+    r"""VoxelNet using `dynamic voxelization <https://arxiv.org/abs/1910.06528>`_."""
 
-    def __init__(self,
-                 voxel_layer,
-                 voxel_encoder,
-                 middle_encoder,
-                 backbone,
-                 neck=None,
-                 bbox_head=None,
-                 train_cfg=None,
-                 test_cfg=None,
-                 pretrained=None,
-                 init_cfg=None):
+    def __init__(
+        self,
+        voxel_layer,
+        voxel_encoder,
+        middle_encoder,
+        backbone,
+        neck=None,
+        bbox_head=None,
+        train_cfg=None,
+        test_cfg=None,
+        pretrained=None,
+        init_cfg=None,
+    ):
         super(DynamicVoxelNet, self).__init__(
             voxel_layer=voxel_layer,
             voxel_encoder=voxel_encoder,
@@ -33,7 +34,8 @@ class DynamicVoxelNet(VoxelNet):
             train_cfg=train_cfg,
             test_cfg=test_cfg,
             pretrained=pretrained,
-            init_cfg=init_cfg)
+            init_cfg=init_cfg,
+        )
 
     def extract_feat(self, points, img_metas):
         """Extract features from points."""
@@ -65,7 +67,7 @@ class DynamicVoxelNet(VoxelNet):
         points = torch.cat(points, dim=0)
         coors_batch = []
         for i, coor in enumerate(coors):
-            coor_pad = F.pad(coor, (1, 0), mode='constant', value=i)
+            coor_pad = F.pad(coor, (1, 0), mode="constant", value=i)
             coors_batch.append(coor_pad)
         coors_batch = torch.cat(coors_batch, dim=0)
         return points, coors_batch

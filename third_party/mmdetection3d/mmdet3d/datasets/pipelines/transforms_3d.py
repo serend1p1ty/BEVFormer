@@ -5,8 +5,12 @@ from mmcv import is_tuple_of
 from mmcv.utils import build_from_cfg
 
 from mmdet3d.core import VoxelGenerator
-from mmdet3d.core.bbox import (CameraInstance3DBoxes, DepthInstance3DBoxes,
-                               LiDARInstance3DBoxes, box_np_ops)
+from mmdet3d.core.bbox import (
+    CameraInstance3DBoxes,
+    DepthInstance3DBoxes,
+    LiDARInstance3DBoxes,
+    box_np_ops,
+)
 from mmdet.datasets.builder import PIPELINES
 from mmdet.datasets.pipelines import RandomFlip
 from ..builder import OBJECTSAMPLERS
@@ -27,8 +31,9 @@ class RandomDropPointsColor(object):
     """
 
     def __init__(self, drop_ratio=0.2):
-        assert isinstance(drop_ratio, (int, float)) and 0 <= drop_ratio <= 1, \
-            f'invalid drop_ratio value {drop_ratio}'
+        assert (
+            isinstance(drop_ratio, (int, float)) and 0 <= drop_ratio <= 1
+        ), f"invalid drop_ratio value {drop_ratio}"
         self.drop_ratio = drop_ratio
 
     def __call__(self, input_dict):
@@ -41,10 +46,10 @@ class RandomDropPointsColor(object):
             dict: Results after color dropping, \
                 'points' key is updated in the result dict.
         """
-        points = input_dict['points']
-        assert points.attribute_dims is not None and \
-            'color' in points.attribute_dims, \
-            'Expect points have color attribute'
+        points = input_dict["points"]
+        assert (
+            points.attribute_dims is not None and "color" in points.attribute_dims
+        ), "Expect points have color attribute"
 
         # this if-expression is a bit strange
         # `RandomDropPointsColor` is used in training 3D segmentor PAConv
@@ -59,7 +64,7 @@ class RandomDropPointsColor(object):
     def __repr__(self):
         """str: Return a string that describes the module."""
         repr_str = self.__class__.__name__
-        repr_str += f'(drop_ratio={self.drop_ratio})'
+        repr_str += f"(drop_ratio={self.drop_ratio})"
         return repr_str
 
 
@@ -82,25 +87,24 @@ class RandomFlip3D(RandomFlip):
             in vertical direction. Defaults to 0.0.
     """
 
-    def __init__(self,
-                 sync_2d=True,
-                 flip_ratio_bev_horizontal=0.0,
-                 flip_ratio_bev_vertical=0.0,
-                 **kwargs):
-        super(RandomFlip3D, self).__init__(
-            flip_ratio=flip_ratio_bev_horizontal, **kwargs)
+    def __init__(
+        self, sync_2d=True, flip_ratio_bev_horizontal=0.0, flip_ratio_bev_vertical=0.0, **kwargs
+    ):
+        super(RandomFlip3D, self).__init__(flip_ratio=flip_ratio_bev_horizontal, **kwargs)
         self.sync_2d = sync_2d
         self.flip_ratio_bev_vertical = flip_ratio_bev_vertical
         if flip_ratio_bev_horizontal is not None:
-            assert isinstance(
-                flip_ratio_bev_horizontal,
-                (int, float)) and 0 <= flip_ratio_bev_horizontal <= 1
+            assert (
+                isinstance(flip_ratio_bev_horizontal, (int, float))
+                and 0 <= flip_ratio_bev_horizontal <= 1
+            )
         if flip_ratio_bev_vertical is not None:
-            assert isinstance(
-                flip_ratio_bev_vertical,
-                (int, float)) and 0 <= flip_ratio_bev_vertical <= 1
+            assert (
+                isinstance(flip_ratio_bev_vertical, (int, float))
+                and 0 <= flip_ratio_bev_vertical <= 1
+            )
 
-    def random_flip_data_3d(self, input_dict, direction='horizontal'):
+    def random_flip_data_3d(self, input_dict, direction="horizontal"):
         """Flip 3D data randomly.
 
         Args:
@@ -111,30 +115,28 @@ class RandomFlip3D(RandomFlip):
             dict: Flipped results, 'points', 'bbox3d_fields' keys are \
                 updated in the result dict.
         """
-        assert direction in ['horizontal', 'vertical']
-        if len(input_dict['bbox3d_fields']) == 0:  # test mode
-            input_dict['bbox3d_fields'].append('empty_box3d')
-            input_dict['empty_box3d'] = input_dict['box_type_3d'](
-                np.array([], dtype=np.float32))
-        assert len(input_dict['bbox3d_fields']) == 1
-        for key in input_dict['bbox3d_fields']:
-            if 'points' in input_dict:
-                input_dict['points'] = input_dict[key].flip(
-                    direction, points=input_dict['points'])
+        assert direction in ["horizontal", "vertical"]
+        if len(input_dict["bbox3d_fields"]) == 0:  # test mode
+            input_dict["bbox3d_fields"].append("empty_box3d")
+            input_dict["empty_box3d"] = input_dict["box_type_3d"](np.array([], dtype=np.float32))
+        assert len(input_dict["bbox3d_fields"]) == 1
+        for key in input_dict["bbox3d_fields"]:
+            if "points" in input_dict:
+                input_dict["points"] = input_dict[key].flip(direction, points=input_dict["points"])
             else:
                 input_dict[key].flip(direction)
-        if 'centers2d' in input_dict:
-            assert self.sync_2d is True and direction == 'horizontal', \
-                'Only support sync_2d=True and horizontal flip with images'
-            w = input_dict['ori_shape'][1]
-            input_dict['centers2d'][..., 0] = \
-                w - input_dict['centers2d'][..., 0]
+        if "centers2d" in input_dict:
+            assert (
+                self.sync_2d is True and direction == "horizontal"
+            ), "Only support sync_2d=True and horizontal flip with images"
+            w = input_dict["ori_shape"][1]
+            input_dict["centers2d"][..., 0] = w - input_dict["centers2d"][..., 0]
             # need to modify the horizontal position of camera center
             # along u-axis in the image (flip like centers2d)
             # ['cam2img'][0][2] = c_u
             # see more details and examples at
             # https://github.com/open-mmlab/mmdetection3d/pull/744
-            input_dict['cam2img'][0][2] = w - input_dict['cam2img'][0][2]
+            input_dict["cam2img"][0][2] = w - input_dict["cam2img"][0][2]
 
     def __call__(self, input_dict):
         """Call function to flip points, values in the ``bbox3d_fields`` and \
@@ -152,34 +154,32 @@ class RandomFlip3D(RandomFlip):
         super(RandomFlip3D, self).__call__(input_dict)
 
         if self.sync_2d:
-            input_dict['pcd_horizontal_flip'] = input_dict['flip']
-            input_dict['pcd_vertical_flip'] = False
+            input_dict["pcd_horizontal_flip"] = input_dict["flip"]
+            input_dict["pcd_vertical_flip"] = False
         else:
-            if 'pcd_horizontal_flip' not in input_dict:
-                flip_horizontal = True if np.random.rand(
-                ) < self.flip_ratio else False
-                input_dict['pcd_horizontal_flip'] = flip_horizontal
-            if 'pcd_vertical_flip' not in input_dict:
-                flip_vertical = True if np.random.rand(
-                ) < self.flip_ratio_bev_vertical else False
-                input_dict['pcd_vertical_flip'] = flip_vertical
+            if "pcd_horizontal_flip" not in input_dict:
+                flip_horizontal = True if np.random.rand() < self.flip_ratio else False
+                input_dict["pcd_horizontal_flip"] = flip_horizontal
+            if "pcd_vertical_flip" not in input_dict:
+                flip_vertical = True if np.random.rand() < self.flip_ratio_bev_vertical else False
+                input_dict["pcd_vertical_flip"] = flip_vertical
 
-        if 'transformation_3d_flow' not in input_dict:
-            input_dict['transformation_3d_flow'] = []
+        if "transformation_3d_flow" not in input_dict:
+            input_dict["transformation_3d_flow"] = []
 
-        if input_dict['pcd_horizontal_flip']:
-            self.random_flip_data_3d(input_dict, 'horizontal')
-            input_dict['transformation_3d_flow'].extend(['HF'])
-        if input_dict['pcd_vertical_flip']:
-            self.random_flip_data_3d(input_dict, 'vertical')
-            input_dict['transformation_3d_flow'].extend(['VF'])
+        if input_dict["pcd_horizontal_flip"]:
+            self.random_flip_data_3d(input_dict, "horizontal")
+            input_dict["transformation_3d_flow"].extend(["HF"])
+        if input_dict["pcd_vertical_flip"]:
+            self.random_flip_data_3d(input_dict, "vertical")
+            input_dict["transformation_3d_flow"].extend(["VF"])
         return input_dict
 
     def __repr__(self):
         """str: Return a string that describes the module."""
         repr_str = self.__class__.__name__
-        repr_str += f'(sync_2d={self.sync_2d},'
-        repr_str += f' flip_ratio_bev_vertical={self.flip_ratio_bev_vertical})'
+        repr_str += f"(sync_2d={self.sync_2d},"
+        repr_str += f" flip_ratio_bev_vertical={self.flip_ratio_bev_vertical})"
         return repr_str
 
 
@@ -205,20 +205,20 @@ class RandomJitterPoints(object):
         For similar transform in detection task, please refer to `ObjectNoise`.
     """
 
-    def __init__(self,
-                 jitter_std=[0.01, 0.01, 0.01],
-                 clip_range=[-0.05, 0.05]):
+    def __init__(self, jitter_std=[0.01, 0.01, 0.01], clip_range=[-0.05, 0.05]):
         seq_types = (list, tuple, np.ndarray)
         if not isinstance(jitter_std, seq_types):
-            assert isinstance(jitter_std, (int, float)), \
-                f'unsupported jitter_std type {type(jitter_std)}'
+            assert isinstance(
+                jitter_std, (int, float)
+            ), f"unsupported jitter_std type {type(jitter_std)}"
             jitter_std = [jitter_std, jitter_std, jitter_std]
         self.jitter_std = jitter_std
 
         if clip_range is not None:
             if not isinstance(clip_range, seq_types):
-                assert isinstance(clip_range, (int, float)), \
-                    f'unsupported clip_range type {type(clip_range)}'
+                assert isinstance(
+                    clip_range, (int, float)
+                ), f"unsupported clip_range type {type(clip_range)}"
                 clip_range = [-clip_range, clip_range]
         self.clip_range = clip_range
 
@@ -232,13 +232,11 @@ class RandomJitterPoints(object):
             dict: Results after adding noise to each point, \
                 'points' key is updated in the result dict.
         """
-        points = input_dict['points']
+        points = input_dict["points"]
         jitter_std = np.array(self.jitter_std, dtype=np.float32)
-        jitter_noise = \
-            np.random.randn(points.shape[0], 3) * jitter_std[None, :]
+        jitter_noise = np.random.randn(points.shape[0], 3) * jitter_std[None, :]
         if self.clip_range is not None:
-            jitter_noise = np.clip(jitter_noise, self.clip_range[0],
-                                   self.clip_range[1])
+            jitter_noise = np.clip(jitter_noise, self.clip_range[0], self.clip_range[1])
 
         points.translate(jitter_noise)
         return input_dict
@@ -246,8 +244,8 @@ class RandomJitterPoints(object):
     def __repr__(self):
         """str: Return a string that describes the module."""
         repr_str = self.__class__.__name__
-        repr_str += f'(jitter_std={self.jitter_std},'
-        repr_str += f' clip_range={self.clip_range})'
+        repr_str += f"(jitter_std={self.jitter_std},"
+        repr_str += f" clip_range={self.clip_range})"
         return repr_str
 
 
@@ -265,8 +263,8 @@ class ObjectSample(object):
     def __init__(self, db_sampler, sample_2d=False):
         self.sampler_cfg = db_sampler
         self.sample_2d = sample_2d
-        if 'type' not in db_sampler.keys():
-            db_sampler['type'] = 'DataBaseSampler'
+        if "type" not in db_sampler.keys():
+            db_sampler["type"] = "DataBaseSampler"
         self.db_sampler = build_from_cfg(db_sampler, OBJECTSAMPLERS)
 
     @staticmethod
@@ -295,63 +293,62 @@ class ObjectSample(object):
                 'points', 'gt_bboxes_3d', 'gt_labels_3d' keys are updated \
                 in the result dict.
         """
-        gt_bboxes_3d = input_dict['gt_bboxes_3d']
-        gt_labels_3d = input_dict['gt_labels_3d']
+        gt_bboxes_3d = input_dict["gt_bboxes_3d"]
+        gt_labels_3d = input_dict["gt_labels_3d"]
 
         # change to float for blending operation
-        points = input_dict['points']
+        points = input_dict["points"]
         if self.sample_2d:
-            img = input_dict['img']
-            gt_bboxes_2d = input_dict['gt_bboxes']
+            img = input_dict["img"]
+            gt_bboxes_2d = input_dict["gt_bboxes"]
             # Assume for now 3D & 2D bboxes are the same
             sampled_dict = self.db_sampler.sample_all(
-                gt_bboxes_3d.tensor.numpy(),
-                gt_labels_3d,
-                gt_bboxes_2d=gt_bboxes_2d,
-                img=img)
+                gt_bboxes_3d.tensor.numpy(), gt_labels_3d, gt_bboxes_2d=gt_bboxes_2d, img=img
+            )
         else:
             sampled_dict = self.db_sampler.sample_all(
-                gt_bboxes_3d.tensor.numpy(), gt_labels_3d, img=None)
+                gt_bboxes_3d.tensor.numpy(), gt_labels_3d, img=None
+            )
 
         if sampled_dict is not None:
-            sampled_gt_bboxes_3d = sampled_dict['gt_bboxes_3d']
-            sampled_points = sampled_dict['points']
-            sampled_gt_labels = sampled_dict['gt_labels_3d']
+            sampled_gt_bboxes_3d = sampled_dict["gt_bboxes_3d"]
+            sampled_points = sampled_dict["points"]
+            sampled_gt_labels = sampled_dict["gt_labels_3d"]
 
-            gt_labels_3d = np.concatenate([gt_labels_3d, sampled_gt_labels],
-                                          axis=0)
+            gt_labels_3d = np.concatenate([gt_labels_3d, sampled_gt_labels], axis=0)
             gt_bboxes_3d = gt_bboxes_3d.new_box(
-                np.concatenate(
-                    [gt_bboxes_3d.tensor.numpy(), sampled_gt_bboxes_3d]))
+                np.concatenate([gt_bboxes_3d.tensor.numpy(), sampled_gt_bboxes_3d])
+            )
 
             points = self.remove_points_in_boxes(points, sampled_gt_bboxes_3d)
             # check the points dimension
             points = points.cat([sampled_points, points])
 
             if self.sample_2d:
-                sampled_gt_bboxes_2d = sampled_dict['gt_bboxes_2d']
-                gt_bboxes_2d = np.concatenate(
-                    [gt_bboxes_2d, sampled_gt_bboxes_2d]).astype(np.float32)
+                sampled_gt_bboxes_2d = sampled_dict["gt_bboxes_2d"]
+                gt_bboxes_2d = np.concatenate([gt_bboxes_2d, sampled_gt_bboxes_2d]).astype(
+                    np.float32
+                )
 
-                input_dict['gt_bboxes'] = gt_bboxes_2d
-                input_dict['img'] = sampled_dict['img']
+                input_dict["gt_bboxes"] = gt_bboxes_2d
+                input_dict["img"] = sampled_dict["img"]
 
-        input_dict['gt_bboxes_3d'] = gt_bboxes_3d
-        input_dict['gt_labels_3d'] = gt_labels_3d.astype(np.long)
-        input_dict['points'] = points
+        input_dict["gt_bboxes_3d"] = gt_bboxes_3d
+        input_dict["gt_labels_3d"] = gt_labels_3d.astype(np.long)
+        input_dict["points"] = points
 
         return input_dict
 
     def __repr__(self):
         """str: Return a string that describes the module."""
         repr_str = self.__class__.__name__
-        repr_str += f' sample_2d={self.sample_2d},'
-        repr_str += f' data_root={self.sampler_cfg.data_root},'
-        repr_str += f' info_path={self.sampler_cfg.info_path},'
-        repr_str += f' rate={self.sampler_cfg.rate},'
-        repr_str += f' prepare={self.sampler_cfg.prepare},'
-        repr_str += f' classes={self.sampler_cfg.classes},'
-        repr_str += f' sample_groups={self.sampler_cfg.sample_groups}'
+        repr_str += f" sample_2d={self.sample_2d},"
+        repr_str += f" data_root={self.sampler_cfg.data_root},"
+        repr_str += f" info_path={self.sampler_cfg.info_path},"
+        repr_str += f" rate={self.sampler_cfg.rate},"
+        repr_str += f" prepare={self.sampler_cfg.prepare},"
+        repr_str += f" classes={self.sampler_cfg.classes},"
+        repr_str += f" sample_groups={self.sampler_cfg.sample_groups}"
         return repr_str
 
 
@@ -371,11 +368,13 @@ class ObjectNoise(object):
             invalid. Defaults to 100.
     """
 
-    def __init__(self,
-                 translation_std=[0.25, 0.25, 0.25],
-                 global_rot_range=[0.0, 0.0],
-                 rot_range=[-0.15707963267, 0.15707963267],
-                 num_try=100):
+    def __init__(
+        self,
+        translation_std=[0.25, 0.25, 0.25],
+        global_rot_range=[0.0, 0.0],
+        rot_range=[-0.15707963267, 0.15707963267],
+        num_try=100,
+    ):
         self.translation_std = translation_std
         self.global_rot_range = global_rot_range
         self.rot_range = rot_range
@@ -391,8 +390,8 @@ class ObjectNoise(object):
             dict: Results after adding noise to each object, \
                 'points', 'gt_bboxes_3d' keys are updated in the result dict.
         """
-        gt_bboxes_3d = input_dict['gt_bboxes_3d']
-        points = input_dict['points']
+        gt_bboxes_3d = input_dict["gt_bboxes_3d"]
+        points = input_dict["points"]
 
         # TODO: check this inplace function
         numpy_box = gt_bboxes_3d.tensor.numpy()
@@ -404,19 +403,20 @@ class ObjectNoise(object):
             rotation_perturb=self.rot_range,
             center_noise_std=self.translation_std,
             global_random_rot_range=self.global_rot_range,
-            num_try=self.num_try)
+            num_try=self.num_try,
+        )
 
-        input_dict['gt_bboxes_3d'] = gt_bboxes_3d.new_box(numpy_box)
-        input_dict['points'] = points.new_point(numpy_points)
+        input_dict["gt_bboxes_3d"] = gt_bboxes_3d.new_box(numpy_box)
+        input_dict["points"] = points.new_point(numpy_points)
         return input_dict
 
     def __repr__(self):
         """str: Return a string that describes the module."""
         repr_str = self.__class__.__name__
-        repr_str += f'(num_try={self.num_try},'
-        repr_str += f' translation_std={self.translation_std},'
-        repr_str += f' global_rot_range={self.global_rot_range},'
-        repr_str += f' rot_range={self.rot_range})'
+        repr_str += f"(num_try={self.num_try},"
+        repr_str += f" translation_std={self.translation_std},"
+        repr_str += f" global_rot_range={self.global_rot_range},"
+        repr_str += f" rot_range={self.rot_range})"
         return repr_str
 
 
@@ -448,7 +448,7 @@ class GlobalAlignment(object):
         Returns:
             dict: Results after translation, 'points' is updated in the dict.
         """
-        input_dict['points'].translate(trans_factor)
+        input_dict["points"].translate(trans_factor)
 
     def _rot_points(self, input_dict, rot_mat):
         """Private function to rotate bounding boxes and points.
@@ -461,7 +461,7 @@ class GlobalAlignment(object):
             dict: Results after rotation, 'points' is updated in the dict.
         """
         # input should be rot_mat_T so I transpose it here
-        input_dict['points'].rotate(rot_mat.T)
+        input_dict["points"].rotate(rot_mat.T)
 
     def _check_rot_mat(self, rot_mat):
         """Check if rotation matrix is valid for self.rotation_axis.
@@ -474,7 +474,7 @@ class GlobalAlignment(object):
         valid_array[self.rotation_axis] = 1.0
         is_valid &= (rot_mat[self.rotation_axis, :] == valid_array).all()
         is_valid &= (rot_mat[:, self.rotation_axis] == valid_array).all()
-        assert is_valid, f'invalid rotation matrix {rot_mat}'
+        assert is_valid, f"invalid rotation matrix {rot_mat}"
 
     def __call__(self, input_dict):
         """Call function to shuffle points.
@@ -486,12 +486,15 @@ class GlobalAlignment(object):
             dict: Results after global alignment, 'points' and keys in \
                 input_dict['bbox3d_fields'] are updated in the result dict.
         """
-        assert 'axis_align_matrix' in input_dict['ann_info'].keys(), \
-            'axis_align_matrix is not provided in GlobalAlignment'
+        assert (
+            "axis_align_matrix" in input_dict["ann_info"].keys()
+        ), "axis_align_matrix is not provided in GlobalAlignment"
 
-        axis_align_matrix = input_dict['ann_info']['axis_align_matrix']
-        assert axis_align_matrix.shape == (4, 4), \
-            f'invalid shape {axis_align_matrix.shape} for axis_align_matrix'
+        axis_align_matrix = input_dict["ann_info"]["axis_align_matrix"]
+        assert axis_align_matrix.shape == (
+            4,
+            4,
+        ), f"invalid shape {axis_align_matrix.shape} for axis_align_matrix"
         rot_mat = axis_align_matrix[:3, :3]
         trans_vec = axis_align_matrix[:3, -1]
 
@@ -503,7 +506,7 @@ class GlobalAlignment(object):
 
     def __repr__(self):
         repr_str = self.__class__.__name__
-        repr_str += f'(rotation_axis={self.rotation_axis})'
+        repr_str += f"(rotation_axis={self.rotation_axis})"
         return repr_str
 
 
@@ -525,30 +528,32 @@ class GlobalRotScaleTrans(object):
             Defaults to False.
     """
 
-    def __init__(self,
-                 rot_range=[-0.78539816, 0.78539816],
-                 scale_ratio_range=[0.95, 1.05],
-                 translation_std=[0, 0, 0],
-                 shift_height=False):
+    def __init__(
+        self,
+        rot_range=[-0.78539816, 0.78539816],
+        scale_ratio_range=[0.95, 1.05],
+        translation_std=[0, 0, 0],
+        shift_height=False,
+    ):
         seq_types = (list, tuple, np.ndarray)
         if not isinstance(rot_range, seq_types):
-            assert isinstance(rot_range, (int, float)), \
-                f'unsupported rot_range type {type(rot_range)}'
+            assert isinstance(
+                rot_range, (int, float)
+            ), f"unsupported rot_range type {type(rot_range)}"
             rot_range = [-rot_range, rot_range]
         self.rot_range = rot_range
 
-        assert isinstance(scale_ratio_range, seq_types), \
-            f'unsupported scale_ratio_range type {type(scale_ratio_range)}'
+        assert isinstance(
+            scale_ratio_range, seq_types
+        ), f"unsupported scale_ratio_range type {type(scale_ratio_range)}"
         self.scale_ratio_range = scale_ratio_range
 
         if not isinstance(translation_std, seq_types):
-            assert isinstance(translation_std, (int, float)), \
-                f'unsupported translation_std type {type(translation_std)}'
-            translation_std = [
-                translation_std, translation_std, translation_std
-            ]
-        assert all([std >= 0 for std in translation_std]), \
-            'translation_std should be positive'
+            assert isinstance(
+                translation_std, (int, float)
+            ), f"unsupported translation_std type {type(translation_std)}"
+            translation_std = [translation_std, translation_std, translation_std]
+        assert all([std >= 0 for std in translation_std]), "translation_std should be positive"
         self.translation_std = translation_std
         self.shift_height = shift_height
 
@@ -566,9 +571,9 @@ class GlobalRotScaleTrans(object):
         translation_std = np.array(self.translation_std, dtype=np.float32)
         trans_factor = np.random.normal(scale=translation_std, size=3).T
 
-        input_dict['points'].translate(trans_factor)
-        input_dict['pcd_trans'] = trans_factor
-        for key in input_dict['bbox3d_fields']:
+        input_dict["points"].translate(trans_factor)
+        input_dict["pcd_trans"] = trans_factor
+        for key in input_dict["bbox3d_fields"]:
             input_dict[key].translate(trans_factor)
 
     def _rot_bbox_points(self, input_dict):
@@ -586,18 +591,17 @@ class GlobalRotScaleTrans(object):
         noise_rotation = np.random.uniform(rotation[0], rotation[1])
 
         # if no bbox in input_dict, only rotate points
-        if len(input_dict['bbox3d_fields']) == 0:
-            rot_mat_T = input_dict['points'].rotate(noise_rotation)
-            input_dict['pcd_rotation'] = rot_mat_T
+        if len(input_dict["bbox3d_fields"]) == 0:
+            rot_mat_T = input_dict["points"].rotate(noise_rotation)
+            input_dict["pcd_rotation"] = rot_mat_T
             return
 
         # rotate points with bboxes
-        for key in input_dict['bbox3d_fields']:
+        for key in input_dict["bbox3d_fields"]:
             if len(input_dict[key].tensor) != 0:
-                points, rot_mat_T = input_dict[key].rotate(
-                    noise_rotation, input_dict['points'])
-                input_dict['points'] = points
-                input_dict['pcd_rotation'] = rot_mat_T
+                points, rot_mat_T = input_dict[key].rotate(noise_rotation, input_dict["points"])
+                input_dict["points"] = points
+                input_dict["pcd_rotation"] = rot_mat_T
 
     def _scale_bbox_points(self, input_dict):
         """Private function to scale bounding boxes and points.
@@ -609,16 +613,17 @@ class GlobalRotScaleTrans(object):
             dict: Results after scaling, 'points'and keys in \
                 input_dict['bbox3d_fields'] are updated in the result dict.
         """
-        scale = input_dict['pcd_scale_factor']
-        points = input_dict['points']
+        scale = input_dict["pcd_scale_factor"]
+        points = input_dict["points"]
         points.scale(scale)
         if self.shift_height:
-            assert 'height' in points.attribute_dims.keys(), \
-                'setting shift_height=True but points have no height attribute'
-            points.tensor[:, points.attribute_dims['height']] *= scale
-        input_dict['points'] = points
+            assert (
+                "height" in points.attribute_dims.keys()
+            ), "setting shift_height=True but points have no height attribute"
+            points.tensor[:, points.attribute_dims["height"]] *= scale
+        input_dict["points"] = points
 
-        for key in input_dict['bbox3d_fields']:
+        for key in input_dict["bbox3d_fields"]:
             input_dict[key].scale(scale)
 
     def _random_scale(self, input_dict):
@@ -631,9 +636,8 @@ class GlobalRotScaleTrans(object):
             dict: Results after scaling, 'pcd_scale_factor' are updated \
                 in the result dict.
         """
-        scale_factor = np.random.uniform(self.scale_ratio_range[0],
-                                         self.scale_ratio_range[1])
-        input_dict['pcd_scale_factor'] = scale_factor
+        scale_factor = np.random.uniform(self.scale_ratio_range[0], self.scale_ratio_range[1])
+        input_dict["pcd_scale_factor"] = scale_factor
 
     def __call__(self, input_dict):
         """Private function to rotate, scale and translate bounding boxes and \
@@ -647,27 +651,27 @@ class GlobalRotScaleTrans(object):
                 'pcd_scale_factor', 'pcd_trans' and keys in \
                 input_dict['bbox3d_fields'] are updated in the result dict.
         """
-        if 'transformation_3d_flow' not in input_dict:
-            input_dict['transformation_3d_flow'] = []
+        if "transformation_3d_flow" not in input_dict:
+            input_dict["transformation_3d_flow"] = []
 
         self._rot_bbox_points(input_dict)
 
-        if 'pcd_scale_factor' not in input_dict:
+        if "pcd_scale_factor" not in input_dict:
             self._random_scale(input_dict)
         self._scale_bbox_points(input_dict)
 
         self._trans_bbox_points(input_dict)
 
-        input_dict['transformation_3d_flow'].extend(['R', 'S', 'T'])
+        input_dict["transformation_3d_flow"].extend(["R", "S", "T"])
         return input_dict
 
     def __repr__(self):
         """str: Return a string that describes the module."""
         repr_str = self.__class__.__name__
-        repr_str += f'(rot_range={self.rot_range},'
-        repr_str += f' scale_ratio_range={self.scale_ratio_range},'
-        repr_str += f' translation_std={self.translation_std},'
-        repr_str += f' shift_height={self.shift_height})'
+        repr_str += f"(rot_range={self.rot_range},"
+        repr_str += f" scale_ratio_range={self.scale_ratio_range},"
+        repr_str += f" translation_std={self.translation_std},"
+        repr_str += f" shift_height={self.shift_height})"
         return repr_str
 
 
@@ -685,17 +689,17 @@ class PointShuffle(object):
             dict: Results after filtering, 'points', 'pts_instance_mask' \
                 and 'pts_semantic_mask' keys are updated in the result dict.
         """
-        idx = input_dict['points'].shuffle()
+        idx = input_dict["points"].shuffle()
         idx = idx.numpy()
 
-        pts_instance_mask = input_dict.get('pts_instance_mask', None)
-        pts_semantic_mask = input_dict.get('pts_semantic_mask', None)
+        pts_instance_mask = input_dict.get("pts_instance_mask", None)
+        pts_semantic_mask = input_dict.get("pts_semantic_mask", None)
 
         if pts_instance_mask is not None:
-            input_dict['pts_instance_mask'] = pts_instance_mask[idx]
+            input_dict["pts_instance_mask"] = pts_instance_mask[idx]
 
         if pts_semantic_mask is not None:
-            input_dict['pts_semantic_mask'] = pts_semantic_mask[idx]
+            input_dict["pts_semantic_mask"] = pts_semantic_mask[idx]
 
         return input_dict
 
@@ -725,14 +729,13 @@ class ObjectRangeFilter(object):
                 keys are updated in the result dict.
         """
         # Check points instance type and initialise bev_range
-        if isinstance(input_dict['gt_bboxes_3d'],
-                      (LiDARInstance3DBoxes, DepthInstance3DBoxes)):
+        if isinstance(input_dict["gt_bboxes_3d"], (LiDARInstance3DBoxes, DepthInstance3DBoxes)):
             bev_range = self.pcd_range[[0, 1, 3, 4]]
-        elif isinstance(input_dict['gt_bboxes_3d'], CameraInstance3DBoxes):
+        elif isinstance(input_dict["gt_bboxes_3d"], CameraInstance3DBoxes):
             bev_range = self.pcd_range[[0, 2, 3, 5]]
 
-        gt_bboxes_3d = input_dict['gt_bboxes_3d']
-        gt_labels_3d = input_dict['gt_labels_3d']
+        gt_bboxes_3d = input_dict["gt_bboxes_3d"]
+        gt_labels_3d = input_dict["gt_labels_3d"]
         mask = gt_bboxes_3d.in_range_bev(bev_range)
         gt_bboxes_3d = gt_bboxes_3d[mask]
         # mask is a torch tensor but gt_labels_3d is still numpy array
@@ -743,15 +746,15 @@ class ObjectRangeFilter(object):
 
         # limit rad to [-pi, pi]
         gt_bboxes_3d.limit_yaw(offset=0.5, period=2 * np.pi)
-        input_dict['gt_bboxes_3d'] = gt_bboxes_3d
-        input_dict['gt_labels_3d'] = gt_labels_3d
+        input_dict["gt_bboxes_3d"] = gt_bboxes_3d
+        input_dict["gt_labels_3d"] = gt_labels_3d
 
         return input_dict
 
     def __repr__(self):
         """str: Return a string that describes the module."""
         repr_str = self.__class__.__name__
-        repr_str += f'(point_cloud_range={self.pcd_range.tolist()})'
+        repr_str += f"(point_cloud_range={self.pcd_range.tolist()})"
         return repr_str
 
 
@@ -776,27 +779,27 @@ class PointsRangeFilter(object):
             dict: Results after filtering, 'points', 'pts_instance_mask' \
                 and 'pts_semantic_mask' keys are updated in the result dict.
         """
-        points = input_dict['points']
+        points = input_dict["points"]
         points_mask = points.in_range_3d(self.pcd_range)
         clean_points = points[points_mask]
-        input_dict['points'] = clean_points
+        input_dict["points"] = clean_points
         points_mask = points_mask.numpy()
 
-        pts_instance_mask = input_dict.get('pts_instance_mask', None)
-        pts_semantic_mask = input_dict.get('pts_semantic_mask', None)
+        pts_instance_mask = input_dict.get("pts_instance_mask", None)
+        pts_semantic_mask = input_dict.get("pts_semantic_mask", None)
 
         if pts_instance_mask is not None:
-            input_dict['pts_instance_mask'] = pts_instance_mask[points_mask]
+            input_dict["pts_instance_mask"] = pts_instance_mask[points_mask]
 
         if pts_semantic_mask is not None:
-            input_dict['pts_semantic_mask'] = pts_semantic_mask[points_mask]
+            input_dict["pts_semantic_mask"] = pts_semantic_mask[points_mask]
 
         return input_dict
 
     def __repr__(self):
         """str: Return a string that describes the module."""
         repr_str = self.__class__.__name__
-        repr_str += f'(point_cloud_range={self.pcd_range.tolist()})'
+        repr_str += f"(point_cloud_range={self.pcd_range.tolist()})"
         return repr_str
 
 
@@ -822,18 +825,17 @@ class ObjectNameFilter(object):
             dict: Results after filtering, 'gt_bboxes_3d', 'gt_labels_3d' \
                 keys are updated in the result dict.
         """
-        gt_labels_3d = input_dict['gt_labels_3d']
-        gt_bboxes_mask = np.array([n in self.labels for n in gt_labels_3d],
-                                  dtype=np.bool_)
-        input_dict['gt_bboxes_3d'] = input_dict['gt_bboxes_3d'][gt_bboxes_mask]
-        input_dict['gt_labels_3d'] = input_dict['gt_labels_3d'][gt_bboxes_mask]
+        gt_labels_3d = input_dict["gt_labels_3d"]
+        gt_bboxes_mask = np.array([n in self.labels for n in gt_labels_3d], dtype=np.bool_)
+        input_dict["gt_bboxes_3d"] = input_dict["gt_bboxes_3d"][gt_bboxes_mask]
+        input_dict["gt_labels_3d"] = input_dict["gt_labels_3d"][gt_bboxes_mask]
 
         return input_dict
 
     def __repr__(self):
         """str: Return a string that describes the module."""
         repr_str = self.__class__.__name__
-        repr_str += f'(classes={self.classes})'
+        repr_str += f"(classes={self.classes})"
         return repr_str
 
 
@@ -857,12 +859,9 @@ class PointSample(object):
         self.sample_range = sample_range
         self.replace = replace
 
-    def _points_random_sampling(self,
-                                points,
-                                num_samples,
-                                sample_range=None,
-                                replace=False,
-                                return_choices=False):
+    def _points_random_sampling(
+        self, points, num_samples, sample_range=None, replace=False, return_choices=False
+    ):
         """Points random sampling.
 
         Sample points to a certain number.
@@ -882,7 +881,7 @@ class PointSample(object):
                 - choices (np.ndarray, optional): The generated random samples.
         """
         if not replace:
-            replace = (points.shape[0] < num_samples)
+            replace = points.shape[0] < num_samples
         point_range = range(len(points))
         if sample_range is not None and not replace:
             # Only sampling the near points when len(points) >= num_samples
@@ -891,8 +890,7 @@ class PointSample(object):
             near_inds = np.where(depth <= sample_range)[0]
             # in case there are too many far points
             if len(far_inds) > num_samples:
-                far_inds = np.random.choice(
-                    far_inds, num_samples, replace=False)
+                far_inds = np.random.choice(far_inds, num_samples, replace=False)
             point_range = near_inds
             num_samples -= len(far_inds)
         choices = np.random.choice(point_range, num_samples, replace=replace)
@@ -914,40 +912,39 @@ class PointSample(object):
             dict: Results after sampling, 'points', 'pts_instance_mask' \
                 and 'pts_semantic_mask' keys are updated in the result dict.
         """
-        points = results['points']
+        points = results["points"]
         # Points in Camera coord can provide the depth information.
         # TODO: Need to suport distance-based sampling for other coord system.
         if self.sample_range is not None:
             from mmdet3d.core.points import CameraPoints
-            assert isinstance(points, CameraPoints), \
-                'Sampling based on distance is only appliable for CAMERA coord'
-        points, choices = self._points_random_sampling(
-            points,
-            self.num_points,
-            self.sample_range,
-            self.replace,
-            return_choices=True)
-        results['points'] = points
 
-        pts_instance_mask = results.get('pts_instance_mask', None)
-        pts_semantic_mask = results.get('pts_semantic_mask', None)
+            assert isinstance(
+                points, CameraPoints
+            ), "Sampling based on distance is only appliable for CAMERA coord"
+        points, choices = self._points_random_sampling(
+            points, self.num_points, self.sample_range, self.replace, return_choices=True
+        )
+        results["points"] = points
+
+        pts_instance_mask = results.get("pts_instance_mask", None)
+        pts_semantic_mask = results.get("pts_semantic_mask", None)
 
         if pts_instance_mask is not None:
             pts_instance_mask = pts_instance_mask[choices]
-            results['pts_instance_mask'] = pts_instance_mask
+            results["pts_instance_mask"] = pts_instance_mask
 
         if pts_semantic_mask is not None:
             pts_semantic_mask = pts_semantic_mask[choices]
-            results['pts_semantic_mask'] = pts_semantic_mask
+            results["pts_semantic_mask"] = pts_semantic_mask
 
         return results
 
     def __repr__(self):
         """str: Return a string that describes the module."""
         repr_str = self.__class__.__name__
-        repr_str += f'(num_points={self.num_points},'
-        repr_str += f' sample_range={self.sample_range},'
-        repr_str += f' replace={self.replace})'
+        repr_str += f"(num_points={self.num_points},"
+        repr_str += f" sample_range={self.sample_range},"
+        repr_str += f" replace={self.replace})"
 
         return repr_str
 
@@ -964,8 +961,7 @@ class IndoorPointSample(PointSample):
     """
 
     def __init__(self, *args, **kwargs):
-        warnings.warn(
-            'IndoorPointSample is deprecated in favor of PointSample')
+        warnings.warn("IndoorPointSample is deprecated in favor of PointSample")
         super(IndoorPointSample, self).__init__(*args, **kwargs)
 
 
@@ -1008,16 +1004,18 @@ class IndoorPatchPointSample(object):
             function of `EncoderDecoder3D` class.
     """
 
-    def __init__(self,
-                 num_points,
-                 block_size=1.5,
-                 sample_rate=None,
-                 ignore_index=None,
-                 use_normalized_coord=False,
-                 num_try=10,
-                 enlarge_size=0.2,
-                 min_unique_num=None,
-                 eps=1e-2):
+    def __init__(
+        self,
+        num_points,
+        block_size=1.5,
+        sample_rate=None,
+        ignore_index=None,
+        use_normalized_coord=False,
+        num_try=10,
+        enlarge_size=0.2,
+        min_unique_num=None,
+        eps=1e-2,
+    ):
         self.num_points = num_points
         self.block_size = block_size
         self.ignore_index = ignore_index
@@ -1030,10 +1028,12 @@ class IndoorPatchPointSample(object):
         if sample_rate is not None:
             warnings.warn(
                 "'sample_rate' has been deprecated and will be removed in "
-                'the future. Please remove them from your code.')
+                "the future. Please remove them from your code."
+            )
 
-    def _input_generation(self, coords, patch_center, coord_max, attributes,
-                          attribute_dims, point_type):
+    def _input_generation(
+        self, coords, patch_center, coord_max, attributes, attribute_dims, point_type
+    ):
         """Generating model input.
 
         Generate input by subtracting patch center and adding additional \
@@ -1062,14 +1062,17 @@ class IndoorPatchPointSample(object):
             if attribute_dims is None:
                 attribute_dims = dict()
             attribute_dims.update(
-                dict(normalized_coord=[
-                    attributes.shape[1], attributes.shape[1] +
-                    1, attributes.shape[1] + 2
-                ]))
+                dict(
+                    normalized_coord=[
+                        attributes.shape[1],
+                        attributes.shape[1] + 1,
+                        attributes.shape[1] + 2,
+                    ]
+                )
+            )
 
         points = np.concatenate([centered_coords, attributes], axis=1)
-        points = point_type(
-            points, points_dim=points.shape[1], attribute_dims=attribute_dims)
+        points = point_type(points, points_dim=points.shape[1], attribute_dims=attribute_dims)
 
         return points
 
@@ -1103,16 +1106,18 @@ class IndoorPatchPointSample(object):
 
             # boundary of a patch, which would be enlarged by
             # `self.enlarge_size` as an augmentation
-            cur_max = cur_center + np.array(
-                [self.block_size / 2.0, self.block_size / 2.0, 0.0])
-            cur_min = cur_center - np.array(
-                [self.block_size / 2.0, self.block_size / 2.0, 0.0])
+            cur_max = cur_center + np.array([self.block_size / 2.0, self.block_size / 2.0, 0.0])
+            cur_min = cur_center - np.array([self.block_size / 2.0, self.block_size / 2.0, 0.0])
             cur_max[2] = coord_max[2]
             cur_min[2] = coord_min[2]
-            cur_choice = np.sum(
-                (coords >= (cur_min - self.enlarge_size)) *
-                (coords <= (cur_max + self.enlarge_size)),
-                axis=1) == 3
+            cur_choice = (
+                np.sum(
+                    (coords >= (cur_min - self.enlarge_size))
+                    * (coords <= (cur_max + self.enlarge_size)),
+                    axis=1,
+                )
+                == 3
+            )
 
             if not cur_choice.any():  # no points in this patch
                 continue
@@ -1120,10 +1125,13 @@ class IndoorPatchPointSample(object):
             cur_coords = coords[cur_choice, :]
             cur_sem_mask = sem_mask[cur_choice]
             point_idxs = np.where(cur_choice)[0]
-            mask = np.sum(
-                (cur_coords >= (cur_min - self.eps)) * (cur_coords <=
-                                                        (cur_max + self.eps)),
-                axis=1) == 3
+            mask = (
+                np.sum(
+                    (cur_coords >= (cur_min - self.eps)) * (cur_coords <= (cur_max + self.eps)),
+                    axis=1,
+                )
+                == 3
+            )
 
             # two criteria for patch sampling, adopted from PointNet++
             # 1. selected patch should contain enough unique points
@@ -1133,10 +1141,11 @@ class IndoorPatchPointSample(object):
                 # coords from 3d array to 1d and then check their uniqueness
                 # this is used in all the ScanNet code following PointNet++
                 vidx = np.ceil(
-                    (cur_coords[mask, :] - cur_min) / (cur_max - cur_min) *
-                    np.array([31.0, 31.0, 62.0]))
-                vidx = np.unique(vidx[:, 0] * 31.0 * 62.0 + vidx[:, 1] * 62.0 +
-                                 vidx[:, 2])
+                    (cur_coords[mask, :] - cur_min)
+                    / (cur_max - cur_min)
+                    * np.array([31.0, 31.0, 62.0])
+                )
+                vidx = np.unique(vidx[:, 0] * 31.0 * 62.0 + vidx[:, 1] * 62.0 + vidx[:, 2])
                 flag1 = len(vidx) / 31.0 / 31.0 / 62.0 >= 0.02
             else:
                 # if `min_unique_num` is provided, directly compare with it
@@ -1146,8 +1155,7 @@ class IndoorPatchPointSample(object):
             if self.ignore_index is None:
                 flag2 = True
             else:
-                flag2 = np.sum(cur_sem_mask != self.ignore_index) / \
-                               len(cur_sem_mask) >= 0.7
+                flag2 = np.sum(cur_sem_mask != self.ignore_index) / len(cur_sem_mask) >= 0.7
 
             if flag1 and flag2:
                 break
@@ -1155,21 +1163,17 @@ class IndoorPatchPointSample(object):
         # sample idx to `self.num_points`
         if point_idxs.size >= self.num_points:
             # no duplicate in sub-sampling
-            choices = np.random.choice(
-                point_idxs, self.num_points, replace=False)
+            choices = np.random.choice(point_idxs, self.num_points, replace=False)
         else:
             # do not use random choice here to avoid some points not counted
-            dup = np.random.choice(point_idxs.size,
-                                   self.num_points - point_idxs.size)
-            idx_dup = np.concatenate(
-                [np.arange(point_idxs.size),
-                 np.array(dup)], 0)
+            dup = np.random.choice(point_idxs.size, self.num_points - point_idxs.size)
+            idx_dup = np.concatenate([np.arange(point_idxs.size), np.array(dup)], 0)
             choices = point_idxs[idx_dup]
 
         # construct model input
-        points = self._input_generation(coords[choices], cur_center, coord_max,
-                                        attributes[choices], attribute_dims,
-                                        point_type)
+        points = self._input_generation(
+            coords[choices], cur_center, coord_max, attributes[choices], attribute_dims, point_type
+        )
 
         return points, choices
 
@@ -1183,34 +1187,34 @@ class IndoorPatchPointSample(object):
             dict: Results after sampling, 'points', 'pts_instance_mask' \
                 and 'pts_semantic_mask' keys are updated in the result dict.
         """
-        points = results['points']
+        points = results["points"]
 
-        assert 'pts_semantic_mask' in results.keys(), \
-            'semantic mask should be provided in training and evaluation'
-        pts_semantic_mask = results['pts_semantic_mask']
+        assert (
+            "pts_semantic_mask" in results.keys()
+        ), "semantic mask should be provided in training and evaluation"
+        pts_semantic_mask = results["pts_semantic_mask"]
 
-        points, choices = self._patch_points_sampling(points,
-                                                      pts_semantic_mask)
+        points, choices = self._patch_points_sampling(points, pts_semantic_mask)
 
-        results['points'] = points
-        results['pts_semantic_mask'] = pts_semantic_mask[choices]
-        pts_instance_mask = results.get('pts_instance_mask', None)
+        results["points"] = points
+        results["pts_semantic_mask"] = pts_semantic_mask[choices]
+        pts_instance_mask = results.get("pts_instance_mask", None)
         if pts_instance_mask is not None:
-            results['pts_instance_mask'] = pts_instance_mask[choices]
+            results["pts_instance_mask"] = pts_instance_mask[choices]
 
         return results
 
     def __repr__(self):
         """str: Return a string that describes the module."""
         repr_str = self.__class__.__name__
-        repr_str += f'(num_points={self.num_points},'
-        repr_str += f' block_size={self.block_size},'
-        repr_str += f' ignore_index={self.ignore_index},'
-        repr_str += f' use_normalized_coord={self.use_normalized_coord},'
-        repr_str += f' num_try={self.num_try},'
-        repr_str += f' enlarge_size={self.enlarge_size},'
-        repr_str += f' min_unique_num={self.min_unique_num},'
-        repr_str += f' eps={self.eps})'
+        repr_str += f"(num_points={self.num_points},"
+        repr_str += f" block_size={self.block_size},"
+        repr_str += f" ignore_index={self.ignore_index},"
+        repr_str += f" use_normalized_coord={self.use_normalized_coord},"
+        repr_str += f" num_try={self.num_try},"
+        repr_str += f" enlarge_size={self.enlarge_size},"
+        repr_str += f" min_unique_num={self.min_unique_num},"
+        repr_str += f" eps={self.eps})"
         return repr_str
 
 
@@ -1223,15 +1227,15 @@ class BackgroundPointsFilter(object):
     """
 
     def __init__(self, bbox_enlarge_range):
-        assert (is_tuple_of(bbox_enlarge_range, float)
-                and len(bbox_enlarge_range) == 3) \
-            or isinstance(bbox_enlarge_range, float), \
-            f'Invalid arguments bbox_enlarge_range {bbox_enlarge_range}'
+        assert (
+            is_tuple_of(bbox_enlarge_range, float) and len(bbox_enlarge_range) == 3
+        ) or isinstance(
+            bbox_enlarge_range, float
+        ), f"Invalid arguments bbox_enlarge_range {bbox_enlarge_range}"
 
         if isinstance(bbox_enlarge_range, float):
             bbox_enlarge_range = [bbox_enlarge_range] * 3
-        self.bbox_enlarge_range = np.array(
-            bbox_enlarge_range, dtype=np.float32)[np.newaxis, :]
+        self.bbox_enlarge_range = np.array(bbox_enlarge_range, dtype=np.float32)[np.newaxis, :]
 
     def __call__(self, input_dict):
         """Call function to filter points by the range.
@@ -1243,8 +1247,8 @@ class BackgroundPointsFilter(object):
             dict: Results after filtering, 'points', 'pts_instance_mask' \
                 and 'pts_semantic_mask' keys are updated in the result dict.
         """
-        points = input_dict['points']
-        gt_bboxes_3d = input_dict['gt_bboxes_3d']
+        points = input_dict["points"]
+        gt_bboxes_3d = input_dict["gt_bboxes_3d"]
 
         # avoid groundtruth being modified
         gt_bboxes_3d_np = gt_bboxes_3d.tensor.clone().numpy()
@@ -1254,28 +1258,29 @@ class BackgroundPointsFilter(object):
         enlarged_gt_bboxes_3d[:, 3:6] += self.bbox_enlarge_range
         points_numpy = points.tensor.clone().numpy()
         foreground_masks = box_np_ops.points_in_rbbox(
-            points_numpy, gt_bboxes_3d_np, origin=(0.5, 0.5, 0.5))
+            points_numpy, gt_bboxes_3d_np, origin=(0.5, 0.5, 0.5)
+        )
         enlarge_foreground_masks = box_np_ops.points_in_rbbox(
-            points_numpy, enlarged_gt_bboxes_3d, origin=(0.5, 0.5, 0.5))
+            points_numpy, enlarged_gt_bboxes_3d, origin=(0.5, 0.5, 0.5)
+        )
         foreground_masks = foreground_masks.max(1)
         enlarge_foreground_masks = enlarge_foreground_masks.max(1)
-        valid_masks = ~np.logical_and(~foreground_masks,
-                                      enlarge_foreground_masks)
+        valid_masks = ~np.logical_and(~foreground_masks, enlarge_foreground_masks)
 
-        input_dict['points'] = points[valid_masks]
-        pts_instance_mask = input_dict.get('pts_instance_mask', None)
+        input_dict["points"] = points[valid_masks]
+        pts_instance_mask = input_dict.get("pts_instance_mask", None)
         if pts_instance_mask is not None:
-            input_dict['pts_instance_mask'] = pts_instance_mask[valid_masks]
+            input_dict["pts_instance_mask"] = pts_instance_mask[valid_masks]
 
-        pts_semantic_mask = input_dict.get('pts_semantic_mask', None)
+        pts_semantic_mask = input_dict.get("pts_semantic_mask", None)
         if pts_semantic_mask is not None:
-            input_dict['pts_semantic_mask'] = pts_semantic_mask[valid_masks]
+            input_dict["pts_semantic_mask"] = pts_semantic_mask[valid_masks]
         return input_dict
 
     def __repr__(self):
         """str: Return a string that describes the module."""
         repr_str = self.__class__.__name__
-        repr_str += f'(bbox_enlarge_range={self.bbox_enlarge_range.tolist()})'
+        repr_str += f"(bbox_enlarge_range={self.bbox_enlarge_range.tolist()})"
         return repr_str
 
 
@@ -1297,8 +1302,7 @@ class VoxelBasedPointSampler(object):
         self.cur_voxel_num = self.cur_voxel_generator._max_voxels
         self.time_dim = time_dim
         if prev_sweep_cfg is not None:
-            assert prev_sweep_cfg['max_num_points'] == \
-                cur_sweep_cfg['max_num_points']
+            assert prev_sweep_cfg["max_num_points"] == cur_sweep_cfg["max_num_points"]
             self.prev_voxel_generator = VoxelGenerator(**prev_sweep_cfg)
             self.prev_voxel_num = self.prev_voxel_generator._max_voxels
         else:
@@ -1319,11 +1323,10 @@ class VoxelBasedPointSampler(object):
         """
         voxels, coors, num_points_per_voxel = sampler.generate(points)
         if voxels.shape[0] < sampler._max_voxels:
-            padding_points = np.zeros([
-                sampler._max_voxels - voxels.shape[0], sampler._max_num_points,
-                point_dim
-            ],
-                                      dtype=points.dtype)
+            padding_points = np.zeros(
+                [sampler._max_voxels - voxels.shape[0], sampler._max_num_points, point_dim],
+                dtype=points.dtype,
+            )
             padding_points[:] = voxels[0]
             sample_points = np.concatenate([voxels, padding_points], axis=0)
         else:
@@ -1341,7 +1344,7 @@ class VoxelBasedPointSampler(object):
             dict: Results after sampling, 'points', 'pts_instance_mask' \
                 and 'pts_semantic_mask' keys are updated in the result dict.
         """
-        points = results['points']
+        points = results["points"]
         original_dim = points.shape[1]
 
         # TODO: process instance and semantic mask while _max_num_points
@@ -1351,12 +1354,12 @@ class VoxelBasedPointSampler(object):
         start_dim = original_dim
         points_numpy = points.tensor.numpy()
         extra_channel = [points_numpy]
-        for idx, key in enumerate(results['pts_mask_fields']):
+        for idx, key in enumerate(results["pts_mask_fields"]):
             map_fields2dim.append((key, idx + start_dim))
             extra_channel.append(results[key][..., None])
 
-        start_dim += len(results['pts_mask_fields'])
-        for idx, key in enumerate(results['pts_seg_fields']):
+        start_dim += len(results["pts_mask_fields"])
+        for idx, key in enumerate(results["pts_seg_fields"]):
             map_fields2dim.append((key, idx + start_dim))
             extra_channel.append(results[key][..., None])
 
@@ -1366,7 +1369,7 @@ class VoxelBasedPointSampler(object):
         # previous sweeps points.
         # TODO: support different sampling methods for next sweeps points
         # and previous sweeps points.
-        cur_points_flag = (points_numpy[:, self.time_dim] == 0)
+        cur_points_flag = points_numpy[:, self.time_dim] == 0
         cur_sweep_points = points_numpy[cur_points_flag]
         prev_sweeps_points = points_numpy[~cur_points_flag]
         if prev_sweeps_points.shape[0] == 0:
@@ -1376,22 +1379,21 @@ class VoxelBasedPointSampler(object):
         np.random.shuffle(cur_sweep_points)
         np.random.shuffle(prev_sweeps_points)
 
-        cur_sweep_points = self._sample_points(cur_sweep_points,
-                                               self.cur_voxel_generator,
-                                               points_numpy.shape[1])
+        cur_sweep_points = self._sample_points(
+            cur_sweep_points, self.cur_voxel_generator, points_numpy.shape[1]
+        )
         if self.prev_voxel_generator is not None:
-            prev_sweeps_points = self._sample_points(prev_sweeps_points,
-                                                     self.prev_voxel_generator,
-                                                     points_numpy.shape[1])
+            prev_sweeps_points = self._sample_points(
+                prev_sweeps_points, self.prev_voxel_generator, points_numpy.shape[1]
+            )
 
-            points_numpy = np.concatenate(
-                [cur_sweep_points, prev_sweeps_points], 0)
+            points_numpy = np.concatenate([cur_sweep_points, prev_sweeps_points], 0)
         else:
             points_numpy = cur_sweep_points
 
         if self.cur_voxel_generator._max_num_points == 1:
             points_numpy = points_numpy.squeeze(1)
-        results['points'] = points.new_point(points_numpy[..., :original_dim])
+        results["points"] = points.new_point(points_numpy[..., :original_dim])
 
         # Restore the correspoinding seg and mask fields
         for key, dim_index in map_fields2dim:
@@ -1403,19 +1405,19 @@ class VoxelBasedPointSampler(object):
         """str: Return a string that describes the module."""
 
         def _auto_indent(repr_str, indent):
-            repr_str = repr_str.split('\n')
-            repr_str = [' ' * indent + t + '\n' for t in repr_str]
-            repr_str = ''.join(repr_str)[:-1]
+            repr_str = repr_str.split("\n")
+            repr_str = [" " * indent + t + "\n" for t in repr_str]
+            repr_str = "".join(repr_str)[:-1]
             return repr_str
 
         repr_str = self.__class__.__name__
         indent = 4
-        repr_str += '(\n'
-        repr_str += ' ' * indent + f'num_cur_sweep={self.cur_voxel_num},\n'
-        repr_str += ' ' * indent + f'num_prev_sweep={self.prev_voxel_num},\n'
-        repr_str += ' ' * indent + f'time_dim={self.time_dim},\n'
-        repr_str += ' ' * indent + 'cur_voxel_generator=\n'
-        repr_str += f'{_auto_indent(repr(self.cur_voxel_generator), 8)},\n'
-        repr_str += ' ' * indent + 'prev_voxel_generator=\n'
-        repr_str += f'{_auto_indent(repr(self.prev_voxel_generator), 8)})'
+        repr_str += "(\n"
+        repr_str += " " * indent + f"num_cur_sweep={self.cur_voxel_num},\n"
+        repr_str += " " * indent + f"num_prev_sweep={self.prev_voxel_num},\n"
+        repr_str += " " * indent + f"time_dim={self.time_dim},\n"
+        repr_str += " " * indent + "cur_voxel_generator=\n"
+        repr_str += f"{_auto_indent(repr(self.cur_voxel_generator), 8)},\n"
+        repr_str += " " * indent + "prev_voxel_generator=\n"
+        repr_str += f"{_auto_indent(repr(self.prev_voxel_generator), 8)})"
         return repr_str

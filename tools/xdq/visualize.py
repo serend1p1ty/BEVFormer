@@ -1,5 +1,6 @@
 import argparse
 import sys
+
 sys.path.append(".")
 import os
 import mmcv
@@ -56,26 +57,27 @@ def main():
         init_dist(args.launcher, **cfg.dist_params)
 
     # import modules from plguin/xx, registry will be updated
-    if hasattr(cfg, 'plugin'):
+    if hasattr(cfg, "plugin"):
         if cfg.plugin:
             import importlib
-            if hasattr(cfg, 'plugin_dir'):
+
+            if hasattr(cfg, "plugin_dir"):
                 plugin_dir = cfg.plugin_dir
                 _module_dir = os.path.dirname(plugin_dir)
-                _module_dir = _module_dir.split('/')
+                _module_dir = _module_dir.split("/")
                 _module_path = _module_dir[0]
 
                 for m in _module_dir[1:]:
-                    _module_path = _module_path + '.' + m
+                    _module_path = _module_path + "." + m
                 print(_module_path)
                 plg_lib = importlib.import_module(_module_path)
             else:
                 # import dir is the dirpath for the config file
                 _module_dir = os.path.dirname(args.config)
-                _module_dir = _module_dir.split('/')
+                _module_dir = _module_dir.split("/")
                 _module_path = _module_dir[0]
                 for m in _module_dir[1:]:
-                    _module_path = _module_path + '.' + m
+                    _module_path = _module_path + "." + m
                 print(_module_path)
                 plg_lib = importlib.import_module(_module_path)
 

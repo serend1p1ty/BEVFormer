@@ -11,12 +11,5 @@ class FCOSMono3D(SingleStageMono3DDetector):
     `leaderboard <https://www.nuscenes.org/object-detection?externalData=all&mapData=all&modalities=Camera>`_.
     """  # noqa: E501
 
-    def __init__(self,
-                 backbone,
-                 neck,
-                 bbox_head,
-                 train_cfg=None,
-                 test_cfg=None,
-                 pretrained=None):
-        super(FCOSMono3D, self).__init__(backbone, neck, bbox_head, train_cfg,
-                                         test_cfg, pretrained)
+    def __init__(self, backbone, neck, bbox_head, train_cfg=None, test_cfg=None, pretrained=None):
+        super(FCOSMono3D, self).__init__(backbone, neck, bbox_head, train_cfg, test_cfg, pretrained)

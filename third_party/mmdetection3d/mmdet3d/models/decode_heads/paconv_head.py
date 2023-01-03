@@ -18,11 +18,12 @@ class PAConvHead(PointNet2Head):
             Default: dict(type='BN2d').
     """
 
-    def __init__(self,
-                 fp_channels=((768, 256, 256), (384, 256, 256),
-                              (320, 256, 128), (128 + 6, 128, 128, 128)),
-                 fp_norm_cfg=dict(type='BN2d'),
-                 **kwargs):
+    def __init__(
+        self,
+        fp_channels=((768, 256, 256), (384, 256, 256), (320, 256, 128), (128 + 6, 128, 128, 128)),
+        fp_norm_cfg=dict(type="BN2d"),
+        **kwargs
+    ):
         super(PAConvHead, self).__init__(fp_channels, fp_norm_cfg, **kwargs)
 
         # https://github.com/CVMI-Lab/PAConv/blob/main/scene_seg/model/pointnet2/pointnet2_paconv_seg.py#L53
@@ -35,7 +36,8 @@ class PAConvHead(PointNet2Head):
             bias=False,
             conv_cfg=self.conv_cfg,
             norm_cfg=self.norm_cfg,
-            act_cfg=self.act_cfg)
+            act_cfg=self.act_cfg,
+        )
 
     def forward(self, feat_dict):
         """Forward pass.
@@ -54,8 +56,9 @@ class PAConvHead(PointNet2Head):
 
         for i in range(self.num_fp):
             # consume the points in a bottom-up manner
-            fp_feature = self.FP_modules[i](sa_xyz[-(i + 2)], sa_xyz[-(i + 1)],
-                                            sa_features[-(i + 2)], fp_feature)
+            fp_feature = self.FP_modules[i](
+                sa_xyz[-(i + 2)], sa_xyz[-(i + 1)], sa_features[-(i + 2)], fp_feature
+            )
 
         output = self.pre_seg_conv(fp_feature)
         output = self.cls_seg(output)
