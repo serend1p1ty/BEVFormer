@@ -233,6 +233,8 @@ def main():
         outputs = custom_multi_gpu_test(model, data_loader, args.tmpdir,
                                         args.gpu_collect)
 
+    # torch.save(outputs, "outputs_xdq_test.pth")
+    # outputs = torch.load("outputs_xdq_test.pth")
     rank, _ = get_dist_info()
     if rank == 0:
         if args.out:
@@ -253,8 +255,7 @@ def main():
                     'rule'
             ]:
                 eval_kwargs.pop(key, None)
-            eval_kwargs.update(dict(metric=args.eval, **kwargs))
-
+            eval_kwargs.update(dict(**kwargs))
             print(dataset.evaluate(outputs, **eval_kwargs))
 
 

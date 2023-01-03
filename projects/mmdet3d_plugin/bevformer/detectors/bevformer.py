@@ -20,6 +20,7 @@ from projects.mmdet3d_plugin.models.utils.bricks import run_time
 @DETECTORS.register_module()
 class BEVFormer(MVXTwoStageDetector):
     """BEVFormer.
+
     Args:
         video_test_mode (bool): Decide whether to use temporal information during inference.
     """
@@ -63,17 +64,10 @@ class BEVFormer(MVXTwoStageDetector):
             'prev_angle': 0,
         }
 
-
     def extract_img_feat(self, img, img_metas, len_queue=None):
         """Extract features of images."""
         B = img.size(0)
         if img is not None:
-            
-            # input_shape = img.shape[-2:]
-            # # update real input shape of each single img
-            # for img_meta in img_metas:
-            #     img_meta.update(input_shape=input_shape)
-
             if img.dim() == 5 and img.size(0) == 1:
                 img.squeeze_()
             elif img.dim() == 5 and img.size(0) > 1:
@@ -102,11 +96,8 @@ class BEVFormer(MVXTwoStageDetector):
     @auto_fp16(apply_to=('img'))
     def extract_feat(self, img, img_metas=None, len_queue=None):
         """Extract features from images and points."""
-
         img_feats = self.extract_img_feat(img, img_metas, len_queue=len_queue)
-        
         return img_feats
-
 
     def forward_pts_train(self,
                           pts_feats,
@@ -115,7 +106,8 @@ class BEVFormer(MVXTwoStageDetector):
                           img_metas,
                           gt_bboxes_ignore=None,
                           prev_bev=None):
-        """Forward function'
+        """Forward function.
+
         Args:
             pts_feats (list[torch.Tensor]): Features of point cloud branch
             gt_bboxes_3d (list[:obj:`BaseInstance3DBoxes`]): Ground truth
@@ -126,6 +118,7 @@ class BEVFormer(MVXTwoStageDetector):
             gt_bboxes_ignore (list[torch.Tensor], optional): Ground truth
                 boxes to be ignored. Defaults to None.
             prev_bev (torch.Tensor, optional): BEV features of previous frame.
+
         Returns:
             dict: Losses of each branch.
         """
@@ -143,6 +136,7 @@ class BEVFormer(MVXTwoStageDetector):
     def forward(self, return_loss=True, **kwargs):
         """Calls either forward_train or forward_test depending on whether
         return_loss=True.
+
         Note this setting will change the expected inputs. When
         `return_loss=True`, img and img_metas are single-nested (i.e.
         torch.Tensor and list[dict]), and when `resturn_loss=False`, img and
@@ -154,23 +148,27 @@ class BEVFormer(MVXTwoStageDetector):
             return self.forward_train(**kwargs)
         else:
             return self.forward_test(**kwargs)
-    
+
     def obtain_history_bev(self, imgs_queue, img_metas_list):
-        """Obtain history BEV features iteratively. To save GPU memory, gradients are not calculated.
+        """Obtain history BEV features iteratively.
+        To save GPU memory, gradients are not calculated.
         """
         self.eval()
 
         with torch.no_grad():
             prev_bev = None
-            bs, len_queue, num_cams, C, H, W = imgs_queue.shape
-            imgs_queue = imgs_queue.reshape(bs*len_queue, num_cams, C, H, W)
-            img_feats_list = self.extract_feat(img=imgs_queue, len_queue=len_queue)
-            for i in range(len_queue):
+            img_feats_list = []
+            for img in imgs_queue:
+                bs, len_queue, (num_cams, C, H, W) = 1, 1, img.shape
+                img = img.reshape(bs * len_queue, num_cams, C, H, W)
+                # [[1, 1, 3, 256, 21, 36], [1, 1, 3, 256, 21, 36]]
+                img_feats_list.extend(self.extract_feat(img=img, len_queue=len_queue))
+            for i in range(len(imgs_queue)):
                 img_metas = [each[i] for each in img_metas_list]
                 if not img_metas[0]['prev_bev_exists']:
                     prev_bev = None
-                # img_feats = self.extract_feat(img=img, img_metas=img_metas)
-                img_feats = [each_scale[:, i] for each_scale in img_feats_list]
+                # [[1, 3, 256, 21, 36]]
+                img_feats = [img_feats_list[i].squeeze(0)]
                 prev_bev = self.pts_bbox_head(
                     img_feats, img_metas, prev_bev, only_bev=True)
             self.train()
@@ -191,6 +189,7 @@ class BEVFormer(MVXTwoStageDetector):
                       img_mask=None,
                       ):
         """Forward training function.
+
         Args:
             points (list[torch.Tensor], optional): Points of each sample.
                 Defaults to None.
@@ -210,13 +209,15 @@ class BEVFormer(MVXTwoStageDetector):
                 used for training Fast RCNN. Defaults to None.
             gt_bboxes_ignore (list[torch.Tensor], optional): Ground truth
                 2D boxes in images to be ignored. Defaults to None.
+
         Returns:
             dict: Losses of different branches.
         """
-        
-        len_queue = img.size(1)
-        prev_img = img[:, :-1, ...]
-        img = img[:, -1, ...]
+        len_queue = len(img[0])
+        # [[3, 3, 672, 1152], [3, 3, 672, 1152]]
+        prev_img = img[0][:-1]
+        # [1, 3, 3, 672, 1152]
+        img = img[0][-1].unsqueeze(0)
 
         prev_img_metas = copy.deepcopy(img_metas)
         prev_bev = self.obtain_history_bev(prev_img, prev_img_metas)

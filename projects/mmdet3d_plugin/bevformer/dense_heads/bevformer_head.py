@@ -29,6 +29,7 @@ from projects.mmdet3d_plugin.models.utils.visual import save_tensor
 @HEADS.register_module()
 class BEVFormerHead(DETRHead):
     """Head of Detr3D.
+
     Args:
         with_box_refine (bool): Whether to refine the reference points
             in the decoder. Defaults to False.
@@ -130,12 +131,14 @@ class BEVFormerHead(DETRHead):
     @auto_fp16(apply_to=('mlvl_feats'))
     def forward(self, mlvl_feats, img_metas, prev_bev=None,  only_bev=False):
         """Forward function.
+
         Args:
             mlvl_feats (tuple[Tensor]): Features from the upstream
                 network, each is a 5D-tensor with shape
                 (B, N, C, H, W).
             prev_bev: previous bev featues
-            only_bev: only compute BEV features with encoder. 
+            only_bev: only compute BEV features with encoder.
+
         Returns:
             all_cls_scores (Tensor): Outputs from the classification head, \
                 shape [nb_dec, bs, num_query, cls_out_channels]. Note \
@@ -145,13 +148,18 @@ class BEVFormerHead(DETRHead):
                 Shape [nb_dec, bs, num_query, 9].
         """
 
+        # [[1, 6, 256, 15, 25]]
         bs, num_cam, _, _, _ = mlvl_feats[0].shape
         dtype = mlvl_feats[0].dtype
+        # [900, 512]
         object_query_embeds = self.query_embedding.weight.to(dtype)
+        # [2500, 256]
         bev_queries = self.bev_embedding.weight.to(dtype)
 
+        # [1, 50, 50]
         bev_mask = torch.zeros((bs, self.bev_h, self.bev_w),
                                device=bev_queries.device).to(dtype)
+        # [1, 256, 50, 50]
         bev_pos = self.positional_encoding(bev_mask).to(dtype)
 
         if only_bev:  # only use encoder to obtain BEV features, TODO: refine the workaround
@@ -234,6 +242,7 @@ class BEVFormerHead(DETRHead):
                            gt_bboxes_ignore=None):
         """"Compute regression and classification targets for one image.
         Outputs from a single decoder layer of a single feature level are used.
+
         Args:
             cls_score (Tensor): Box score logits from a single decoder layer
                 for one image. Shape [num_query, cls_out_channels].
@@ -246,6 +255,7 @@ class BEVFormerHead(DETRHead):
                 with shape (num_gts, ).
             gt_bboxes_ignore (Tensor, optional): Bounding boxes
                 which can be ignored. Default None.
+
         Returns:
             tuple[Tensor]: a tuple containing the following for one image.
                 - labels (Tensor): Labels of each image.
@@ -293,6 +303,7 @@ class BEVFormerHead(DETRHead):
                     gt_bboxes_ignore_list=None):
         """"Compute regression and classification targets for a batch image.
         Outputs from a single decoder layer of a single feature level are used.
+
         Args:
             cls_scores_list (list[Tensor]): Box score logits from a single
                 decoder layer for each image with shape [num_query,
@@ -306,6 +317,7 @@ class BEVFormerHead(DETRHead):
                 image with shape (num_gts, ).
             gt_bboxes_ignore_list (list[Tensor], optional): Bounding
                 boxes which can be ignored for each image. Default None.
+
         Returns:
             tuple: a tuple containing the following targets.
                 - labels_list (list[Tensor]): Labels for all images.
@@ -344,6 +356,7 @@ class BEVFormerHead(DETRHead):
                     gt_bboxes_ignore_list=None):
         """"Loss function for outputs from a single decoder layer of a single
         feature level.
+
         Args:
             cls_scores (Tensor): Box score logits from a single decoder layer
                 for all images. Shape [bs, num_query, cls_out_channels].
@@ -356,6 +369,7 @@ class BEVFormerHead(DETRHead):
                 image with shape (num_gts, ).
             gt_bboxes_ignore_list (list[Tensor], optional): Bounding
                 boxes which can be ignored for each image. Default None.
+
         Returns:
             dict[str, Tensor]: A dictionary of loss components for outputs from
                 a single decoder layer.
@@ -414,8 +428,8 @@ class BEVFormerHead(DETRHead):
              gt_bboxes_ignore=None,
              img_metas=None):
         """"Loss function.
-        Args:
 
+        Args:
             gt_bboxes_list (list[Tensor]): Ground truth bboxes for each image
                 with shape (num_gts, 4) in [tl_x, tl_y, br_x, br_y] format.
             gt_labels_list (list[Tensor]): Ground truth class indices for each
@@ -437,6 +451,7 @@ class BEVFormerHead(DETRHead):
                     passed when as_two_stage is True, otherwise is None.
             gt_bboxes_ignore (list[Tensor], optional): Bounding boxes
                 which can be ignored for each image. Default None.
+
         Returns:
             dict[str, Tensor]: A dictionary of loss components.
         """
@@ -496,9 +511,11 @@ class BEVFormerHead(DETRHead):
     @force_fp32(apply_to=('preds_dicts'))
     def get_bboxes(self, preds_dicts, img_metas, rescale=False):
         """Generate bboxes from bbox head predictions.
+
         Args:
             preds_dicts (tuple[list[dict]]): Prediction results.
             img_metas (list[dict]): Point cloud and image's meta info.
+
         Returns:
             list[dict]: Decoded bbox, scores and labels after nms.
         """

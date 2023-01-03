@@ -27,7 +27,7 @@ class CustomNuScenesDataset(NuScenesDataset):
         self.queue_length = queue_length
         self.overlap_test = overlap_test
         self.bev_size = bev_size
-        
+
     def prepare_train_data(self, index):
         """
         Training data preparation.
@@ -59,25 +59,25 @@ class CustomNuScenesDataset(NuScenesDataset):
         imgs_list = [each['img'].data for each in queue]
         metas_map = {}
         prev_scene_token = None
-        prev_pos = None
-        prev_angle = None
+        # prev_pos = None
+        # prev_angle = None
         for i, each in enumerate(queue):
             metas_map[i] = each['img_metas'].data
             if metas_map[i]['scene_token'] != prev_scene_token:
                 metas_map[i]['prev_bev_exists'] = False
-                prev_scene_token = metas_map[i]['scene_token']
-                prev_pos = copy.deepcopy(metas_map[i]['can_bus'][:3])
-                prev_angle = copy.deepcopy(metas_map[i]['can_bus'][-1])
-                metas_map[i]['can_bus'][:3] = 0
-                metas_map[i]['can_bus'][-1] = 0
+                # prev_scene_token = metas_map[i]['scene_token']
+                # prev_pos = copy.deepcopy(metas_map[i]['can_bus'][:3])
+                # prev_angle = copy.deepcopy(metas_map[i]['can_bus'][-1])
+                # metas_map[i]['can_bus'][:3] = 0
+                # metas_map[i]['can_bus'][-1] = 0
             else:
                 metas_map[i]['prev_bev_exists'] = True
-                tmp_pos = copy.deepcopy(metas_map[i]['can_bus'][:3])
-                tmp_angle = copy.deepcopy(metas_map[i]['can_bus'][-1])
-                metas_map[i]['can_bus'][:3] -= prev_pos
-                metas_map[i]['can_bus'][-1] -= prev_angle
-                prev_pos = copy.deepcopy(tmp_pos)
-                prev_angle = copy.deepcopy(tmp_angle)
+                # tmp_pos = copy.deepcopy(metas_map[i]['can_bus'][:3])
+                # tmp_angle = copy.deepcopy(metas_map[i]['can_bus'][-1])
+                # metas_map[i]['can_bus'][:3] -= prev_pos
+                # metas_map[i]['can_bus'][-1] -= prev_angle
+                # prev_pos = copy.deepcopy(tmp_pos)
+                # prev_angle = copy.deepcopy(tmp_angle)
         queue[-1]['img'] = DC(torch.stack(imgs_list), cpu_only=False, stack=True)
         queue[-1]['img_metas'] = DC(metas_map, cpu_only=True)
         queue = queue[-1]
@@ -110,11 +110,11 @@ class CustomNuScenesDataset(NuScenesDataset):
             sweeps=info['sweeps'],
             ego2global_translation=info['ego2global_translation'],
             ego2global_rotation=info['ego2global_rotation'],
-            prev_idx=info['prev'],
-            next_idx=info['next'],
-            scene_token=info['scene_token'],
-            can_bus=info['can_bus'],
-            frame_idx=info['frame_idx'],
+            # prev_idx=info['prev'],
+            # next_idx=info['next'],
+            # scene_token=info['scene_token'],
+            # can_bus=info['can_bus'],
+            # frame_idx=info['frame_idx'],
             timestamp=info['timestamp'] / 1e6,
         )
 
@@ -153,16 +153,16 @@ class CustomNuScenesDataset(NuScenesDataset):
             annos = self.get_ann_info(index)
             input_dict['ann_info'] = annos
 
-        rotation = Quaternion(input_dict['ego2global_rotation'])
-        translation = input_dict['ego2global_translation']
-        can_bus = input_dict['can_bus']
-        can_bus[:3] = translation
-        can_bus[3:7] = rotation
-        patch_angle = quaternion_yaw(rotation) / np.pi * 180
-        if patch_angle < 0:
-            patch_angle += 360
-        can_bus[-2] = patch_angle / 180 * np.pi
-        can_bus[-1] = patch_angle
+        # rotation = Quaternion(input_dict['ego2global_rotation'])
+        # translation = input_dict['ego2global_translation']
+        # can_bus = input_dict['can_bus']
+        # can_bus[:3] = translation
+        # can_bus[3:7] = rotation
+        # patch_angle = quaternion_yaw(rotation) / np.pi * 180
+        # if patch_angle < 0:
+        #     patch_angle += 360
+        # can_bus[-2] = patch_angle / 180 * np.pi
+        # can_bus[-1] = patch_angle
 
         return input_dict
 

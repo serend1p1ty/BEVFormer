@@ -38,7 +38,7 @@ class BEVFormerEncoder(TransformerLayerSequence):
     """
 
     def __init__(self, *args, pc_range=None, num_points_in_pillar=4, return_intermediate=False, dataset_type='nuscenes',
-                 **kwargs):
+                 norm_offsets=None, **kwargs):
 
         super(BEVFormerEncoder, self).__init__(*args, **kwargs)
         self.return_intermediate = return_intermediate
@@ -46,6 +46,7 @@ class BEVFormerEncoder(TransformerLayerSequence):
         self.num_points_in_pillar = num_points_in_pillar
         self.pc_range = pc_range
         self.fp16_enabled = False
+        self.norm_offsets = norm_offsets
 
     @staticmethod
     def get_reference_points(H, W, Z=8, num_points_in_pillar=4, dim='3d', bs=1, device='cuda', dtype=torch.float):
@@ -105,6 +106,11 @@ class BEVFormerEncoder(TransformerLayerSequence):
             (pc_range[4] - pc_range[1]) + pc_range[1]
         reference_points[..., 2:3] = reference_points[..., 2:3] * \
             (pc_range[5] - pc_range[2]) + pc_range[2]
+        if self.norm_offsets is not None:
+            assert len(img_metas) == 1
+            nid = img_metas[0]["nid"]
+            norm_offset = self.norm_offsets[nid]
+            reference_points -= reference_points.new_tensor(norm_offset)
 
         reference_points = torch.cat(
             (reference_points, torch.ones_like(reference_points[..., :1])), -1)
@@ -182,17 +188,21 @@ class BEVFormerEncoder(TransformerLayerSequence):
         output = bev_query
         intermediate = []
 
+        # [1, 4, 2500, 3]
         ref_3d = self.get_reference_points(
             bev_h, bev_w, self.pc_range[5]-self.pc_range[2], self.num_points_in_pillar, dim='3d', bs=bev_query.size(1),  device=bev_query.device, dtype=bev_query.dtype)
+        # [1, 2500, 1, 2]
         ref_2d = self.get_reference_points(
             bev_h, bev_w, dim='2d', bs=bev_query.size(1), device=bev_query.device, dtype=bev_query.dtype)
 
+        # [6, 1, 2500, 4, 2]
         reference_points_cam, bev_mask = self.point_sampling(
             ref_3d, self.pc_range, kwargs['img_metas'])
 
         # bug: this code should be 'shift_ref_2d = ref_2d.clone()', we keep this bug for reproducing our results in paper.
-        shift_ref_2d = ref_2d  # .clone()
-        shift_ref_2d += shift[:, None, None, :]
+        # shift_ref_2d = ref_2d  # .clone()
+        # shift_ref_2d += shift[:, None, None, :]
+        shift_ref_2d = ref_2d.clone()
 
         # (num_query, bs, embed_dims) -> (bs, num_query, embed_dims)
         bev_query = bev_query.permute(1, 0, 2)
@@ -200,8 +210,10 @@ class BEVFormerEncoder(TransformerLayerSequence):
         bs, len_bev, num_bev_level, _ = ref_2d.shape
         if prev_bev is not None:
             prev_bev = prev_bev.permute(1, 0, 2)
+            # [2, 2500, 256]
             prev_bev = torch.stack(
                 [prev_bev, bev_query], 1).reshape(bs*2, len_bev, -1)
+            # [2, 2500, 1, 2]
             hybird_ref_2d = torch.stack([shift_ref_2d, ref_2d], 1).reshape(
                 bs*2, len_bev, num_bev_level, 2)
         else:
