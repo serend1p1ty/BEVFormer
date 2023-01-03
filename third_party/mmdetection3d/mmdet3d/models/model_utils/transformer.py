@@ -143,7 +143,7 @@ class ConvBNPositionalEncoding(nn.Module):
         """Forward pass.
 
         Args:
-            xyz (Tensor)： (B, N, 3) the coordinates to embed.
+            xyz (Tensor): (B, N, 3) the coordinates to embed.
 
         Returns:
             Tensor: (B, num_pos_feats, N) the embeded position features.

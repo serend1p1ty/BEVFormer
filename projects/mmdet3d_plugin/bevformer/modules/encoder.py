@@ -24,14 +24,12 @@ ext_module = ext_loader.load_ext("_ext", ["ms_deform_attn_backward", "ms_deform_
 
 @TRANSFORMER_LAYER_SEQUENCE.register_module()
 class BEVFormerEncoder(TransformerLayerSequence):
-
     """
-    Attention with both self and cross
-    Implements the decoder in DETR transformer.
+    Attention with both self and cross. Implements the decoder in DETR transformer.
+
     Args:
         return_intermediate (bool): Whether to return intermediate outputs.
-        coder_norm_cfg (dict): Config of last normalization layer. Default：
-            `LN`.
+        coder_norm_cfg (dict): Config of last normalization layer. Defaults to `LN`.
     """
 
     def __init__(
@@ -58,12 +56,14 @@ class BEVFormerEncoder(TransformerLayerSequence):
         H, W, Z=8, num_points_in_pillar=4, dim="3d", bs=1, device="cuda", dtype=torch.float
     ):
         """Get the reference points used in SCA and TSA.
+
         Args:
             H, W: spatial shape of bev.
             Z: hight of pillar.
             D: sample D points uniformly from each pillar.
             device (obj:`device`): The device where
                 reference_points should be.
+
         Returns:
             Tensor: reference points used in decoder, has \
                 shape (bs, num_keys, num_levels, 2).
@@ -194,6 +194,7 @@ class BEVFormerEncoder(TransformerLayerSequence):
         **kwargs,
     ):
         """Forward function for `TransformerDecoder`.
+
         Args:
             bev_query (Tensor): Input BEV query with shape
                 `(num_query, bs, embed_dims)`.
@@ -206,6 +207,7 @@ class BEVFormerEncoder(TransformerLayerSequence):
             valid_ratios (Tensor): The radios of valid
                 points on the feature map, has shape
                 (bs, num_levels, 2)
+
         Returns:
             Tensor: Results with shape [1, num_query, bs, embed_dims] when
                 return_intermediate is `False`, otherwise it has shape
@@ -295,6 +297,7 @@ class BEVFormerEncoder(TransformerLayerSequence):
 @TRANSFORMER_LAYER.register_module()
 class BEVFormerLayer(MyCustomBaseTransformerLayer):
     """Implements decoder layer in DETR transformer.
+
     Args:
         attn_cfgs (list[`mmcv.ConfigDict`] | list[dict] | dict )):
             Configs for self_attention or cross_attention, the order
@@ -306,12 +309,12 @@ class BEVFormerLayer(MyCustomBaseTransformerLayer):
             in ffn. Default 0.0.
         operation_order (tuple[str]): The execution order of operation
             in transformer. Such as ('self_attn', 'norm', 'ffn', 'norm').
-            Default：None
+            Default: None
         act_cfg (dict): The activation config for FFNs. Default: `LN`
         norm_cfg (dict): Config dict for normalization layer.
             Default: `LN`.
         ffn_num_fcs (int): The number of fully-connected layers in FFNs.
-            Default：2.
+            Default: 2.
     """
 
     def __init__(

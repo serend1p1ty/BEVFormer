@@ -90,7 +90,7 @@ class GeneralSamplingModule(nn.Module):
         """Forward pass.
 
         Args:
-            xyz： (B, N, 3) the coordinates of the features.
+            xyz: (B, N, 3) the coordinates of the features.
             features (Tensor): (B, C, N) features to sample.
             sample_inds (Tensor): (B, M) the given index,
                 where M is the number of points.

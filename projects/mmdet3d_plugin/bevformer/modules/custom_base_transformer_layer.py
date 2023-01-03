@@ -46,6 +46,7 @@ from mmcv.cnn.bricks.transformer import build_feedforward_network, build_attenti
 @TRANSFORMER_LAYER.register_module()
 class MyCustomBaseTransformerLayer(BaseModule):
     """Base `TransformerLayer` for vision transformer.
+
     It can be built from `mmcv.ConfigDict` and support more flexible
     customization, for example, using any number of `FFN or LN ` and
     use different kinds of `attention` by specifying a list of `ConfigDict`
@@ -53,6 +54,7 @@ class MyCustomBaseTransformerLayer(BaseModule):
     when you specifying `norm` as the first element of `operation_order`.
     More details about the `prenorm`: `On Layer Normalization in the
     Transformer Architecture <https://arxiv.org/abs/2002.04745>`_ .
+
     Args:
         attn_cfgs (list[`mmcv.ConfigDict`] | obj:`mmcv.ConfigDict` | None )):
             Configs for `self_attention` or `cross_attention` modules,
@@ -68,7 +70,7 @@ class MyCustomBaseTransformerLayer(BaseModule):
         operation_order (tuple[str]): The execution order of operation
             in transformer. Such as ('self_attn', 'norm', 'ffn', 'norm').
             Support `prenorm` when you specifying first element as `norm`.
-            Default：None.
+            Default: None.
         norm_cfg (dict): Config dict for normalization layer.
             Default: dict(type='LN').
         init_cfg (obj:`mmcv.ConfigDict`): The Config for initialization.

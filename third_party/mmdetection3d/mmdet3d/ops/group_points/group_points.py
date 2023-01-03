@@ -70,7 +70,7 @@ class QueryAndGroup(nn.Module):
             center_xyz (Tensor): (B, npoint, 3) Centriods.
             features (Tensor): (B, C, N) Descriptors of the features.
 
-        Return：
+        Return:
             Tensor: (B, 3 + C, npoint, sample_num) Grouped feature.
         """
         # if self.max_radius is None, we will perform kNN instead of ball query
